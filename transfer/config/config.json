@@ -1,0 +1,6 @@
+{
+    "dbaddr":"localhost",
+    "dbname":"postgres",
+    "dbbase":"yunchao",
+    "payment_addr":"127.0.0.1:9010"
+}
