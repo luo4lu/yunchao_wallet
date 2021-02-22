@@ -9,7 +9,8 @@ WORKDIR /workspace
 
 ADD ./ /workspace
 
-RUN cargo build --release
+RUN mkdir .cargo && cp cargo_config .cargo/config
+RUN CARGO_HTTP_MULTIPLEXING=false cargo build --release
 
 FROM alpine
 
