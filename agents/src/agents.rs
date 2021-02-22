@@ -1,10 +1,10 @@
 use crate::response::ResponseBody;
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder, HttpRequest};
 use chrono::prelude::*;
 use chrono::{NaiveDateTime,DateTime};
 use deadpool_postgres::Pool;
 use log::{warn,info};
-use serde::{Deserialize, Serialize, Serializer, Deserializer};
+use serde::{Deserialize, Serialize};
 use uuid::v1::{Context, Timestamp};
 use uuid::Uuid;
 
@@ -20,7 +20,6 @@ use uuid::Uuid;
 #[derive(Deserialize, Debug)]
 pub struct AgentsRequest{
     extra: Option<serde_json::Value>,
-    wallet_id: String,
     to_wallet: String,
     description: Option<String>,
     #[serde(serialize_with = "timestamp_ser")]
@@ -50,11 +49,19 @@ pub struct AgentsResponse {
     pub description: Option<String>,
 }
 
-#[post("/wallets/agents")]
+#[post("/wallets/{wallet_id}/agents")]
 pub async fn create_agents(
     data: web::Data<Pool>,
-    req: web::Json<AgentsRequest>
+    req: web::Json<AgentsRequest>,
+    req_head: HttpRequest
 ) -> impl Responder {
+    let op1 = req_head.match_info().get("wallet_id");
+
+    if op1.is_none() {
+        return HttpResponse::Ok().json(ResponseBody::<()>::return_none_error());
+    }
+
+    let wallet_id = op1.unwrap();
     //获取数据库句柄
     let conn = data.get().await.unwrap();
     //生成支付对象id
@@ -71,7 +78,7 @@ pub async fn create_agents(
     let agents_uuid = agents_uuid.to_string();
     let agents_type = String::from("agent");
     match conn.query("INSERT INTO agents(id, type, created, from_wallet, to_wallet, begin_time, end_time, limit_amount, update_time) 
-    VALUES($1, $2, now(), $3, $4, $5, $6, $7, now())", &[&agents_uuid, &agents_type, &req.wallet_id, &req.to_wallet, &req.begin_time, &req.end_time, &req.limit_amount]).await{
+    VALUES($1, $2, now(), $3, $4, $5, $6, $7, now())", &[&agents_uuid, &agents_type, &wallet_id, &req.to_wallet, &req.begin_time, &req.end_time, &req.limit_amount]).await{
         Ok(_) => {
             info!("create agents object success!!!");
         }
@@ -162,7 +169,7 @@ pub async fn create_agents(
         ttype: agents_type,
         created: agents_info[0].get(0),
         extra: req.extra.clone(),
-        from_wallet: req.wallet_id.clone(),
+        from_wallet: wallet_id.to_string(),
         to_wallet: req.to_wallet.clone(),
         begin_time: req.begin_time,
         end_time: req.end_time,
@@ -183,8 +190,19 @@ pub async fn create_agents(
  * return :响应数据code=0成功，其他值参考错误列表
  */
 
- //单号请求消息头
- #[derive(Debug, Deserialize)]
- pub struct DeletePayObject {
-     pub id: String,
- }
+#[delete("/wallets/{wallet_id}/agents/{id}")]
+pub async fn delete_agents_id(
+    data: web::Data<Pool>,
+    req_head: HttpRequest
+) ->impl Responder {
+    let op1 = req_head.match_info().get("wallet_id");
+    let op2 = req_head.match_info().get("id");
+    if op1.is_none() || op2.is_none(){
+        return HttpResponse::Ok().json(ResponseBody::<()>::return_none_error());
+    }
+
+    let wallet_id = op1.unwrap();
+    let id = op2.unwrap();
+    //获取数据库句柄
+    let conn = data.get().await.unwrap();
+}

@@ -1,6 +1,6 @@
 use crate::agents::AgentsResponse;
 use crate::response::ResponseBody;
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{get, web, HttpResponse, Responder, HttpRequest};
 use chrono::{NaiveDateTime};
 use deadpool_postgres::Pool;
 use log::{warn};
@@ -13,21 +13,23 @@ use serde::{Deserialize, Serialize};
  *
  *return：响应数据code=0成功，其他值参照错误列表
 */
-#[derive(Debug, Deserialize)]
-pub struct GetAgentsObject {
-    pub wallet_id: String,
-    pub id: String
-}
-
-#[get("/wallets/agents/info")]
+#[get("/wallets/{wallet_id}/agents/{id}")]
 pub async fn get_agents_info(
     data: web::Data<Pool>,
-    req: web::Query<GetAgentsObject>
+    req_head: HttpRequest
 ) ->impl Responder {
+    let op1 = req_head.match_info().get("wallet_id");
+    let op2 = req_head.match_info().get("id");
+    if op1.is_none() || op2.is_none(){
+        return HttpResponse::Ok().json(ResponseBody::<()>::return_none_error());
+    }
+
+    let wallet_id = op1.unwrap();
+    let id = op2.unwrap();
     //获取数据库句柄
     let conn = data.get().await.unwrap();
     let agents_select = match conn.query("SELECT type, created, extra, to_wallet, begin_time, end_time, limit_amount, day_limit_amount, 
-    month_limit_amount, total_limit_amount,description from agents where id = $1 and from_wallet = $2",&[&req.id, &req.wallet_id]).await{
+    month_limit_amount, total_limit_amount,description from agents where id = $1 and from_wallet = $2",&[&id, &wallet_id]).await{
         Ok(value) =>{
             value
         }
@@ -41,11 +43,11 @@ pub async fn get_agents_info(
         return HttpResponse::Ok().json(ResponseBody::<()>::object_not_exit());
     }
     return HttpResponse::Ok().json(ResponseBody::<AgentsResponse>::new_success(Some(AgentsResponse{
-        id: req.id.clone(),
+        id: id.to_string(),
         ttype: agents_select[0].get(0),
         created: agents_select[0].get(1),
         extra: agents_select[0].get(2),
-        from_wallet: req.wallet_id.clone(),
+        from_wallet: wallet_id.to_string(),
         to_wallet: agents_select[0].get(3),
         begin_time: agents_select[0].get(4),
         end_time: agents_select[0].get(5),
@@ -78,23 +80,31 @@ pub struct ObjectIdResult {
     data: Vec<AgentsResponse>,
 }
 
-#[get("/wallets/agents/list")]
+#[get("/wallets/{wallet_id}/agents")]
 pub async fn get_agents_list(
     data: web::Data<Pool>,
-    req: web::Query<GetAgentsObjectQuery>
+    req: web::Query<GetAgentsObjectQuery>,
+    req_head: HttpRequest
 ) ->impl Responder {
+    let op1 = req_head.match_info().get("wallet_id");
+
+    if op1.is_none() {
+        return HttpResponse::Ok().json(ResponseBody::<()>::return_none_error());
+    }
+
+    let wallet_id = op1.unwrap();
     //查询页数计算
     let page_num: i64 = (req.page - 1) * req.count;
     //获取数据库句柄
     let conn = data.get().await.unwrap();
-    let mut sql_sum = "SELECT count(*) from agents".to_string();
+    let mut sql_sum = "SELECT count(*) from agents where from_wallet = $1".to_string();
     let mut sql = "SELECT id, type, created, extra, from_wallet, to_wallet, begin_time, end_time, limit_amount, day_limit_amount, 
-    month_limit_amount, total_limit_amount,description from agents".to_string();
-    let mut sql_params: Vec<&(dyn tokio_postgres::types::ToSql + std::marker::Sync)> = vec![];
+    month_limit_amount, total_limit_amount,description from agents where from_wallet = $1".to_string();
+    let mut sql_params: Vec<&(dyn tokio_postgres::types::ToSql + std::marker::Sync)> = vec![&wallet_id];
     if req.begin_time.is_some() && req.end_time.is_some() {
-        sql_sum.push_str(" where created > $");
+        sql_sum.push_str(" and created > $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
-        sql.push_str(" where created > $");
+        sql.push_str(" and created > $");
         sql.push_str(&(sql_params.len() + 1).to_string());
         sql_params.push(req.begin_time.as_ref().unwrap());
         sql_sum.push_str(" and created < $");
@@ -103,15 +113,15 @@ pub async fn get_agents_list(
         sql.push_str(&(sql_params.len() + 1).to_string());
         sql_params.push(req.end_time.as_ref().unwrap());
     }else if req.end_time.is_some() {
-        sql_sum.push_str(" where created < $");
+        sql_sum.push_str(" and created < $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
-        sql.push_str(" where created < $");
+        sql.push_str(" and created < $");
         sql.push_str(&(sql_params.len() + 1).to_string());
         sql_params.push(req.end_time.as_ref().unwrap());
     }else if req.begin_time.is_some() {
-        sql_sum.push_str(" where created > $");
+        sql_sum.push_str(" and created > $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
-        sql.push_str(" where created > $");
+        sql.push_str(" and created > $");
         sql.push_str(&(sql_params.len() + 1).to_string());
         sql_params.push(req.begin_time.as_ref().unwrap());
     }

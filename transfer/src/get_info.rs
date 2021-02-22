@@ -1,6 +1,6 @@
 use crate::transfer::TransferResponse;
 use crate::response::ResponseBody;
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{get, web, HttpResponse, Responder, HttpRequest};
 use chrono::{NaiveDateTime};
 use deadpool_postgres::Pool;
 use log::{warn};
@@ -18,15 +18,23 @@ use serde::{Deserialize, Serialize};
 pub struct GetTransObject {
     pub trans_id: String,
 }
-#[get("/wallets/transfers/info")]
+#[get("/wallets/{wallet_id}/transfers/{id}")]
 pub async fn get_trans_info(
     data: web::Data<Pool>,
-    req: web::Query<GetTransObject>
+    req_head: HttpRequest
 ) ->impl Responder {
+    let op1 = req_head.match_info().get("wallet_id");
+    let op2 = req_head.match_info().get("id");
+    if op1.is_none() || op2.is_none(){
+        return HttpResponse::Ok().json(ResponseBody::<()>::return_none_error());
+    }
+
+    let wallet_id = op1.unwrap();
+    let id = op2.unwrap();
     //获取数据库句柄
     let conn = data.get().await.unwrap();
     let trans_select = match conn.query("SELECT id, type, created, extra, wallet_id, to_wallet, description, 
-    status from transfer where id = $1",&[&req.trans_id]).await{
+    status from transfer where wallet_id=$1 and id = $2",&[&wallet_id, &id]).await{
         Ok(value) =>{
             value
         }
@@ -72,23 +80,31 @@ pub struct ObjectIdResult {
     data: Vec<TransferResponse>,
 }
 
-#[get("/wallets/transfers/list")]
+#[get("/wallets/{wallet_id}/transfers")]
 pub async fn get_trans_list(
     data: web::Data<Pool>,
-    req: web::Query<GetTransObjectQuery>
+    req: web::Query<GetTransObjectQuery>,
+    req_head: HttpRequest
 ) ->impl Responder {
+    let op1 = req_head.match_info().get("wallet_id");
+
+    if op1.is_none() {
+        return HttpResponse::Ok().json(ResponseBody::<()>::return_none_error());
+    }
+
+    let wallet_id = op1.unwrap();
     //查询页数计算
     let page_num: i64 = (req.page - 1) * req.count;
     //获取数据库句柄
     let conn = data.get().await.unwrap();
-    let mut sql_sum = "SELECT count(*) from transfer".to_string();
+    let mut sql_sum = "SELECT count(*) from transfer where wallet_id = $1".to_string();
     let mut sql = "SELECT id, type, created, extra, wallet_id, to_wallet, description, 
-    status from transfer".to_string();
-    let mut sql_params: Vec<&(dyn tokio_postgres::types::ToSql + std::marker::Sync)> = vec![];
+    status from transfer where wallet_id = $1".to_string();
+    let mut sql_params: Vec<&(dyn tokio_postgres::types::ToSql + std::marker::Sync)> = vec![&wallet_id];
     if req.begin_time.is_some() && req.end_time.is_some() {
-        sql_sum.push_str(" where created > $");
+        sql_sum.push_str(" and created > $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
-        sql.push_str(" where created > $");
+        sql.push_str(" and created > $");
         sql.push_str(&(sql_params.len() + 1).to_string());
         sql_params.push(req.begin_time.as_ref().unwrap());
         sql_sum.push_str(" and created < $");
@@ -97,15 +113,15 @@ pub async fn get_trans_list(
         sql.push_str(&(sql_params.len() + 1).to_string());
         sql_params.push(req.end_time.as_ref().unwrap());
     }else if req.end_time.is_some() {
-        sql_sum.push_str(" where created < $");
+        sql_sum.push_str(" and created < $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
-        sql.push_str(" where created < $");
+        sql.push_str(" and created < $");
         sql.push_str(&(sql_params.len() + 1).to_string());
         sql_params.push(req.end_time.as_ref().unwrap());
     }else if req.begin_time.is_some() {
-        sql_sum.push_str(" where created > $");
+        sql_sum.push_str(" and created > $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
-        sql.push_str(" where created > $");
+        sql.push_str(" and created > $");
         sql.push_str(&(sql_params.len() + 1).to_string());
         sql_params.push(req.begin_time.as_ref().unwrap());
     }

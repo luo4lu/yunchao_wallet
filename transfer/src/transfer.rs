@@ -1,5 +1,5 @@
 use crate::response::ResponseBody;
-use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder, HttpRequest};
 use chrono::prelude::*;
 use chrono::{NaiveDateTime,DateTime};
 use deadpool_postgres::Pool;
@@ -19,7 +19,6 @@ use uuid::Uuid;
 #[derive(Deserialize, Debug)]
 pub struct TransferRequest{
     extra: Option<serde_json::Value>,
-    wallet_id: String,
     to_wallet: String,
     description: Option<String>,
 }
@@ -36,11 +35,19 @@ pub struct TransferResponse {
     pub description: Option<String>,
     pub status: String
 }
-#[post("/wallets/transfers")]
+#[post("/wallets/{wallet_id}/transfers")]
 pub async fn create_payment(
     data: web::Data<Pool>,
-    req: web::Json<TransferRequest>
+    req: web::Json<TransferRequest>,
+    req_head: HttpRequest
 ) -> impl Responder {
+    let op1 = req_head.match_info().get("wallet_id");
+
+    if op1.is_none() {
+        return HttpResponse::Ok().json(ResponseBody::<()>::return_none_error());
+    }
+
+    let wallet_id = op1.unwrap();
     //获取数据库句柄
     let conn = data.get().await.unwrap();
     //生成支付对象id
@@ -59,7 +66,7 @@ pub async fn create_payment(
     let status = String::from("created");
     match conn.query("INSERT INTO transfer(id, type, created, wallet_id, to_wallet, status, update_time) 
     VALUES($1, $2, now(), $3, $4, $5, now())",
-    &[&trans_uuid, &trans_type, &req.wallet_id, &req.wallet_id, &status]).await{
+    &[&trans_uuid, &trans_type, &wallet_id, &req.to_wallet, &status]).await{
         Ok(_) => {
             info!("create transfer object success!!!");
         }
@@ -115,7 +122,7 @@ pub async fn create_payment(
         created: trans_info[0].get(0),
         extra: req.extra.clone(),
         to_wallet: req.to_wallet.clone(),
-        wallet_id: req.wallet_id.clone(),
+        wallet_id: wallet_id.to_string(),
         description: req.description.clone(),
         status
     })));

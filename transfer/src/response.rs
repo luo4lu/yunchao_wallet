@@ -40,4 +40,11 @@ impl<T> ResponseBody<T> {
             data: None,
         }
     }
+    pub fn return_none_error() -> Self {
+        ResponseBody {
+            code: 60003,
+            message: format!("获取请求头为空"),
+            data: None,
+        }
+    }
 }
