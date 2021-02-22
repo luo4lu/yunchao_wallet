@@ -1,5 +1,5 @@
 use crate::response::ResponseBody;
-use actix_web::{post, web, HttpResponse, Responder, HttpRequest};
+use actix_web::{post, delete, web, HttpResponse, Responder, HttpRequest};
 use chrono::prelude::*;
 use chrono::{NaiveDateTime,DateTime};
 use deadpool_postgres::Pool;
@@ -205,4 +205,41 @@ pub async fn delete_agents_id(
     let id = op2.unwrap();
     //获取数据库句柄
     let conn = data.get().await.unwrap();
+    let agents_select = match conn.query("SELECT type, created, extra, to_wallet, begin_time, end_time, limit_amount, day_limit_amount, 
+    month_limit_amount, total_limit_amount,description from agents where id = $1 and from_wallet = $2",&[&id, &wallet_id]).await{
+        Ok(value) =>{
+            value
+        }
+        Err(error)=>{
+            warn!("1.get agents select info id failed:{:?}",error);
+            return HttpResponse::Ok().json(ResponseBody::<String>::return_unwrap_error(error.to_string()));
+        }
+    };
+    if agents_select.is_empty() {
+        warn!("select agents_select is empty from id");
+        return HttpResponse::Ok().json(ResponseBody::<()>::object_not_exit());
+    }
+    match conn.query("DELETE FROM agents WHERE id = $1 and from_wallet = $2",&[&id, &wallet_id]).await{
+        Ok(_) =>{
+            return HttpResponse::Ok().json(ResponseBody::<AgentsResponse>::new_success(Some(AgentsResponse{
+                id: id.to_string(),
+                ttype: agents_select[0].get(0),
+                created: agents_select[0].get(1),
+                extra: agents_select[0].get(2),
+                from_wallet: wallet_id.to_string(),
+                to_wallet: agents_select[0].get(3),
+                begin_time: agents_select[0].get(4),
+                end_time: agents_select[0].get(5),
+                limit_amount: agents_select[0].get(6),
+                day_limit_amount: agents_select[0].get(7),
+                month_limit_amount: agents_select[0].get(8),
+                total_limit_amount: agents_select[0].get(9),
+                description: agents_select[0].get(10),
+            })));
+        }
+        Err(error)=>{
+            warn!("delete agents wallet id for id failed:{:?}",error);
+            return HttpResponse::Ok().json(ResponseBody::<String>::return_unwrap_error(error.to_string()));
+        }
+    };  
 }

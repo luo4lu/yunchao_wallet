@@ -23,6 +23,7 @@ async fn main() -> std::io::Result<()> {
             .service(agents::create_agents)
             .service(get_info::get_agents_info)
             .service(get_info::get_agents_list)
+            .service(agents::delete_agents_id)
     })
     .bind(pay_addr)?
     .run()
