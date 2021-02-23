@@ -47,10 +47,11 @@ pub async fn get_trans_info(
         warn!("select trans_select is empty from id");
         return HttpResponse::Ok().json(ResponseBody::<()>::object_not_exit());
     }
+    let created_time: NaiveDateTime = trans_select[0].get(2);
     return HttpResponse::Ok().json(ResponseBody::<TransferResponse>::new_success(Some(TransferResponse{
         id: trans_select[0].get(0),
         ttype: trans_select[0].get(1),
-        created: trans_select[0].get(2),
+        created: created_time.timestamp(),
         extra: trans_select[0].get(3),
         to_wallet: trans_select[0].get(5),
         wallet_id: trans_select[0].get(4),
@@ -70,8 +71,8 @@ pub async fn get_trans_info(
 pub struct GetTransObjectQuery {
     page: i64,
     count: i64,
-    begin_time: Option<NaiveDateTime>,
-    end_time: Option<NaiveDateTime>,
+    begin_time: Option<i64>,
+    end_time: Option<i64>,
 }
 //查询结果响应数据
 #[derive(Debug, Serialize)]
@@ -101,29 +102,37 @@ pub async fn get_trans_list(
     let mut sql = "SELECT id, type, created, extra, wallet_id, to_wallet, description, 
     status from transfer where wallet_id = $1".to_string();
     let mut sql_params: Vec<&(dyn tokio_postgres::types::ToSql + std::marker::Sync)> = vec![&wallet_id];
+    let dt_begin = NaiveDateTime::from_timestamp(match req.begin_time{
+        Some(v) => v,
+        None => 0
+    },0);
+    let dt_end = NaiveDateTime::from_timestamp(match req.end_time{
+        Some(v) => v,
+        None => 0
+    },0);
     if req.begin_time.is_some() && req.end_time.is_some() {
         sql_sum.push_str(" and created > $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
         sql.push_str(" and created > $");
         sql.push_str(&(sql_params.len() + 1).to_string());
-        sql_params.push(req.begin_time.as_ref().unwrap());
+        sql_params.push(&dt_begin);
         sql_sum.push_str(" and created < $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
         sql.push_str(" and created < $");
         sql.push_str(&(sql_params.len() + 1).to_string());
-        sql_params.push(req.end_time.as_ref().unwrap());
+        sql_params.push(&dt_end);
     }else if req.end_time.is_some() {
         sql_sum.push_str(" and created < $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
         sql.push_str(" and created < $");
         sql.push_str(&(sql_params.len() + 1).to_string());
-        sql_params.push(req.end_time.as_ref().unwrap());
+        sql_params.push(&dt_end);
     }else if req.begin_time.is_some() {
         sql_sum.push_str(" and created > $");
         sql_sum.push_str(&(sql_params.len() + 1).to_string());
         sql.push_str(" and created > $");
         sql.push_str(&(sql_params.len() + 1).to_string());
-        sql_params.push(req.begin_time.as_ref().unwrap());
+        sql_params.push(&dt_begin);
     }
     //查询条件范围订单总条数
     let select_total = match conn.query(sql_sum.as_str(), &sql_params[..]).await {
@@ -158,10 +167,11 @@ pub async fn get_trans_list(
     };
     let mut trans_data: Vec<TransferResponse> = Vec::new();
     for value in trans_select.iter(){
+        let created_time: NaiveDateTime = value.get(2);
         let params: TransferResponse = TransferResponse {
             id: value.get(0),
             ttype: value.get(1),
-            created: value.get(2),
+            created: created_time.timestamp(),
             extra: value.get(3),
             to_wallet: value.get(5),
             wallet_id: value.get(4),

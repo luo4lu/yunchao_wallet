@@ -22,10 +22,8 @@ pub struct AgentsRequest{
     extra: Option<serde_json::Value>,
     to_wallet: String,
     description: Option<String>,
-    #[serde(serialize_with = "timestamp_ser")]
-    begin_time: NaiveDateTime,
-    #[serde(serialize_with = "timestamp_ser")]
-    end_time: NaiveDateTime,
+    begin_time: i64,
+    end_time: i64,
     limit_amount: i64,
     day_limit_amount: Option<i64>,
     month_limit_amount: Option<i64>,
@@ -36,12 +34,12 @@ pub struct AgentsResponse {
     pub id: String,
     #[serde(rename = "type")]
     pub ttype: String,
-    pub created: NaiveDateTime,
+    pub created: i64,
     pub extra: Option<serde_json::Value>,
     pub from_wallet: String,
     pub to_wallet: String,
-    pub begin_time: NaiveDateTime,
-    pub end_time: NaiveDateTime,
+    pub begin_time: i64,
+    pub end_time: i64,
     pub limit_amount: i64,
     pub day_limit_amount: Option<i64>,
     pub month_limit_amount: Option<i64>,
@@ -77,8 +75,10 @@ pub async fn create_agents(
     .expect("failed to generate order UUID");
     let agents_uuid = agents_uuid.to_string();
     let agents_type = String::from("agent");
+    let dt_begin = NaiveDateTime::from_timestamp(req.begin_time,0);
+    let dt_end = NaiveDateTime::from_timestamp(req.end_time,0);
     match conn.query("INSERT INTO agents(id, type, created, from_wallet, to_wallet, begin_time, end_time, limit_amount, update_time) 
-    VALUES($1, $2, now(), $3, $4, $5, $6, $7, now())", &[&agents_uuid, &agents_type, &wallet_id, &req.to_wallet, &req.begin_time, &req.end_time, &req.limit_amount]).await{
+    VALUES($1, $2, now(), $3, $4, $5, $6, $7, now())", &[&agents_uuid, &agents_type, &wallet_id, &req.to_wallet, &dt_begin, &dt_end, &req.limit_amount]).await{
         Ok(_) => {
             info!("create agents object success!!!");
         }
@@ -164,10 +164,11 @@ pub async fn create_agents(
             return HttpResponse::Ok().json(ResponseBody::<String>::return_unwrap_error(error.to_string()));
         }
     };
+    let created_time: NaiveDateTime = agents_info[0].get(0);
     return HttpResponse::Ok().json(ResponseBody::<AgentsResponse>::new_success(Some(AgentsResponse{
         id: agents_uuid,
         ttype: agents_type,
-        created: agents_info[0].get(0),
+        created: created_time.timestamp(),
         extra: req.extra.clone(),
         from_wallet: wallet_id.to_string(),
         to_wallet: req.to_wallet.clone(),
@@ -221,15 +222,18 @@ pub async fn delete_agents_id(
     }
     match conn.query("DELETE FROM agents WHERE id = $1 and from_wallet = $2",&[&id, &wallet_id]).await{
         Ok(_) =>{
+            let created_time: NaiveDateTime = agents_select[0].get(1);
+            let dt_begin: NaiveDateTime = agents_select[0].get(4);
+            let dt_end: NaiveDateTime = agents_select[0].get(5);
             return HttpResponse::Ok().json(ResponseBody::<AgentsResponse>::new_success(Some(AgentsResponse{
                 id: id.to_string(),
                 ttype: agents_select[0].get(0),
-                created: agents_select[0].get(1),
+                created: created_time.timestamp(),
                 extra: agents_select[0].get(2),
                 from_wallet: wallet_id.to_string(),
                 to_wallet: agents_select[0].get(3),
-                begin_time: agents_select[0].get(4),
-                end_time: agents_select[0].get(5),
+                begin_time: dt_begin.timestamp(),
+                end_time: dt_end.timestamp(),
                 limit_amount: agents_select[0].get(6),
                 day_limit_amount: agents_select[0].get(7),
                 month_limit_amount: agents_select[0].get(8),

@@ -28,7 +28,7 @@ pub struct TransferResponse {
     pub id: String,
     #[serde(rename = "type")]
     pub ttype: String,
-    pub created: NaiveDateTime,
+    pub created: i64,
     pub extra: Option<serde_json::Value>,
     pub to_wallet: String,
     pub wallet_id: String,
@@ -116,10 +116,11 @@ pub async fn create_payment(
         warn!("select transfer is empty from id");
         return HttpResponse::Ok().json(ResponseBody::<()>::object_not_exit());
     }
+    let created_time: NaiveDateTime = trans_info[0].get(0);
     return HttpResponse::Ok().json(ResponseBody::<TransferResponse>::new_success(Some(TransferResponse{
         id: trans_uuid,
         ttype: trans_type,
-        created: trans_info[0].get(0),
+        created: created_time.timestamp(),
         extra: req.extra.clone(),
         to_wallet: req.to_wallet.clone(),
         wallet_id: wallet_id.to_string(),
