@@ -1,0 +1,23 @@
+[package]
+name = "user_info"
+version = "0.1.0"
+authors = ["luo4lu <luo4lu@163.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+clap = "~2.27.0"
+mysql_async = "0.27.1"
+futures = "0.3.0"
+libc = "0.2.0"
+log = "0.4.8"
+env_logger = "0.7.1"
+simple_logger = "0.5"
+serde = { version = "1.0.0", features = ["derive"] }
+serde_derive = "1.0.0"
+serde_json = "1.0.0"
+tokio = { version = "1.0", features = ["full"] }
+actix-web = "4.0.0-beta.1"
+actix-rt = "2.0.0"
+chrono = { version = "0.4", features = ["serde"] }
