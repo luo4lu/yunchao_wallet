@@ -1,16 +1,12 @@
-use serde::{Deserialize,Serialize};
 use log::Level;
-use log:: warn;
-use clap::ArgMatches;
+use log:: {info,warn};
 use mysql_async::{Row, Pool};
 use mysql_async::prelude::Queryable;
 use redis::AsyncCommands;
-use chrono::{NaiveDateTime};
 use reqwest::Client;
 use std::fs::File;
 use std::io::BufReader;
 use futures_util::StreamExt as _;
-use std::time;
 
 mod config;
 
@@ -44,14 +40,13 @@ async fn main() {
         let s = y.to_string();
         //读取文件获取下一次超时重传键
         let head_str1 = &pubsub_msg[0..14];
-        println!("HEAD = {}",head_str1);
         if head_str1 != "webhook-expire" {
             warn!("this redis key not need listen:{}",pubsub_msg);
             continue;
         }
         let object_id = &pubsub_msg[15..pubsub_msg.len()-2];
         let redis_key2 = format!("{}-{}",String::from("webhook-context"),object_id);
-        println!("key2={}",redis_key2);
+        info!("key2={}",redis_key2);
         let result: String = match conn.get(redis_key2.clone()).await{
             Ok(v) => v,
             Err(error) => {
@@ -95,7 +90,13 @@ async fn main() {
             };
             let reader_r = BufReader::new(file_r);
             let value_r: serde_json::Value = serde_json::from_reader(reader_r).unwrap();
-            let at_time: usize = value_r[s.clone()].as_u64().unwrap() as usize;
+            let at_time: usize = match value_r[s.clone()].as_u64(){
+                Some(t) => t as usize,
+                None => {
+                    let _:() = conn.del(redis_key2).await.unwrap();
+                    continue;
+                }
+            };
             let redis_key1 = format!("{}-{}-{}",head_str1,object_id,s);
             let _: () = conn.set(redis_key1.clone(),s).await.unwrap();
             let _: () = conn.expire(redis_key1,at_time).await.unwrap();
