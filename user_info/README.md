@@ -5,7 +5,6 @@
 | Field       | Type         | Comment                                |
 | ----------- | ------------ | -------------------------------------- |
 | appid       | varchar(255) | 用户应用id                              |
-| secret_key  | varchar(255) | 用户私钥                                |
 | web_url     | text         | webhooks推送地址                        |
 | create_time | timestamp    | 数据创建时间                            |
 | update_time | timestamp    |                                        |
@@ -19,7 +18,6 @@ POST $endpoint/user/info
 ```json
 {
     "appid": "", // 用户应用id
-    "secret_key": "" ,//用户私钥
     "web_url":"" //webhooks推送地址
 }
 ```
@@ -32,7 +30,6 @@ POST $endpoint/user/info
     "message": "message",
     "data": {
         "appid": "", // 用户应用id
-        "secret_key": "" ,//用户私钥
         "web_url":"" //webhooks推送地址
     }
 }
@@ -50,7 +47,6 @@ GET $endpoint/user/info/{appid}
     "message": "message",
     "data": {
         "appid": "", // 对应 app 对象的 id
-        "secret_key": "" ,//用户私钥
         "web_url":"", //webhooks推送地址
         "created": i64 //unix时间戳
     }

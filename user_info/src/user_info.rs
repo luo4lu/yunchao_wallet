@@ -17,20 +17,17 @@ use mysql_async::prelude::Queryable;
  #[derive(Deserialize, Debug)]
  pub struct UserInfoRequest{
     appid: String, // 用户应用id
-    secret_key: String ,//用户私钥
     web_url: String
  }
 
  #[derive(Deserialize, Serialize, Debug)]
  pub struct UserInfoResponse{
     pub appid: String, // 用户应用id
-    pub secret_key: String ,//用户私钥
     pub web_url: String
  }
  #[derive(Debug, PartialEq, Eq, Clone)]
  struct Payment {
     appid: String,
-    secret_key: String,
     web_url: String,
  }
  #[post("/user/info")]
@@ -41,16 +38,15 @@ use mysql_async::prelude::Queryable;
     //连接数据库
     let pool: Pool = config::get_db();
     let mut conn = pool.get_conn().await.unwrap();
-    let payments = vec![Payment{appid:req.appid.clone(), secret_key: req.secret_key.clone(), web_url: req.web_url.clone()}];
+    let payments = vec![Payment{appid:req.appid.clone(), web_url: req.web_url.clone()}];
     let params = payments.clone().into_iter().map(|payment| {
         params! {
             "appid" => payment.appid,
-            "secret_key" => payment.secret_key,
             "web_url" => payment.web_url,
         }
     });
-    match conn.exec_batch(r"INSERT INTO user_info(appid, secret_key, web_url, create_time, update_time)
-     VALUES(:appid, :secret_key, :web_url, now(),now())",params).await{
+    match conn.exec_batch(r"INSERT INTO user_info(appid, web_url, create_time, update_time)
+     VALUES(:appid, :web_url, now(),now())",params).await{
         Ok(_) =>{},
         Err(error) => {
             warn!("1.insert user_info data failed for user_info of:{:?}",error);
@@ -62,7 +58,6 @@ use mysql_async::prelude::Queryable;
     pool.disconnect().await.unwrap();
     return HttpResponse::Ok().json(ResponseBody::<UserInfoResponse>::new_success(Some(UserInfoResponse{
         appid: req.appid.clone(), // 用户应用id
-        secret_key: req.secret_key.clone() ,//用户私钥
         web_url: req.web_url.clone()
      })));
  }
