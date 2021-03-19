@@ -23,7 +23,7 @@ use redis::AsyncCommands;
 pub struct CallbackInfo{
     data: serde_json::Value,
     rsp: serde_json::Value,
-    code: u32
+    code: i32
 }
 
 //webhook数据通知类型
@@ -83,6 +83,18 @@ pub async fn consumer_server()
         topic_vec.push(value_str);
     }
     let context = CustomContext;
+    //写入一个Redis超时事件
+    let redis: &str = value_name["redis_addr"].as_str().unwrap();
+    let redis_path = format!("redis://{}/",redis);
+    let redis_client = redis::Client::open(redis_path).unwrap();
+
+    let mut con = match redis_client.get_async_connection().await{
+        Ok(c)=> c,
+        Err(error) => {
+            warn!("connect redis server failed:{:?}",error);
+            return;
+        }
+    };
 
     let consumer: LoggingConsumer = ClientConfig::new()
         .set("group.id", group_id)
@@ -104,9 +116,11 @@ pub async fn consumer_server()
     warn!("启动消费");
     while let Some(message) = message_stream.next().await{
         match message {
-            Err(e) => warn!("this topic not neet: {}", e),
+            Err(e) => info!("this topic not neet: {}", e),
             Ok(m) => {
                 let recv_event: String = String::from_utf8(m.key().unwrap().to_vec()).unwrap();
+                let recv_topic: &str = m.topic();
+                info!("recv_event={:?}---{}",recv_event,recv_topic);
                 let payload_str = match m.payload_view::<str>(){
                     None => {
                         warn!("MessageInfo return null value");
@@ -121,34 +135,40 @@ pub async fn consumer_server()
                 let payload: CallbackInfo = match serde_json::from_str(&payload_str){
                     Ok(value) => value,
                     Err(error) => {
-                        warn!("this message not neet,get next message:{}.",error.to_string());
+                        info!("this message not neet,get next message:{}.",error.to_string());
                         continue;
                     }
                 };
-                //提交消费通知
-                consumer.commit_message(&m, CommitMode::Async).unwrap();
                 let mut object_data = payload.data;
+                info!("Payload == {:?}",object_data);
                 let code = payload.code;
-                let mut send_event: String = String::new();
+                let mut _send_event: String = String::new();
                 if 0 == code {
                     if recharge == recv_event{
-                        send_event = String::from("charge.succeeded");
+                        _send_event = String::from("charge.succeeded");
                     }else if withdraw == recv_event{
-                        send_event = String::from("withdraw.succeeded");
+                        _send_event = String::from("withdraw.succeeded");
                     }else if transfer == recv_event{
-                        send_event = String::from("transfer.succeeded");
+                        _send_event = String::from("transfer.succeeded");
+                    }else{
+                        info!("{:?} this key value not need,into get next message.",recv_event);
+                        continue;
                     }
                 }else{
                     //系统服务没有正确响应状态，无需发送到商户服务
                     if recharge == recv_event{
-                        send_event = String::from("charge.failed");
+                        _send_event = String::from("charge.failed");
                     }else if withdraw == recv_event{
-                        send_event = String::from("withdraw.failed");
+                        _send_event = String::from("withdraw.failed");
                     }else if transfer == recv_event{
-                        send_event = String::from("transfer.failed");
+                        _send_event = String::from("transfer.failed");
+                    }else{
+                        info!("{:?} this key value not need,into get next message.",recv_event);
+                        continue;
                     }
                 }
-
+                //提交消费通知
+                consumer.commit_message(&m, CommitMode::Async).unwrap();
                 //数据库连接
                 let pool: Pool = config::get_db();
                 let mut conn = pool.get_conn().await.unwrap();
@@ -159,7 +179,7 @@ pub async fn consumer_server()
                 let sql_str = format!("select web_url, create_time from user_info where appid = \'{}\'",app_id);
                 let row: Vec<Row> = conn.query(sql_str).await.unwrap();
                 if row.is_empty(){
-                    warn!("select failed！！");
+                    info!("select failed！！");
                     continue;
                 }
                 //释放资源
@@ -173,7 +193,7 @@ pub async fn consumer_server()
                     id: object_id.clone(),
                     event_type: String::from("event"),
                     created,
-                    event: send_event,
+                    event: _send_event,
                     data: object_data.clone()
                 };
                 let info_client = Client::new();
@@ -186,18 +206,7 @@ pub async fn consumer_server()
                 .unwrap();
                 let code_status = request_info.status().as_u16();
                 if code_status != 200 {
-                    //写入一个Redis超时事件
-                    let redis: &str = value_name["redis_addr"].as_str().unwrap();
-                    let redis_path = format!("redis://{}/",redis);
-                    let redis_client = redis::Client::open(redis_path).unwrap();
-            
-                    let mut con = match redis_client.get_async_connection().await{
-                        Ok(c)=> c,
-                        Err(error) => {
-                            warn!("connect redis server failed:{:?}",error);
-                            continue;
-                        }
-                    };
+                     info!("webhook reqwest failed,into write retrans listen!!");
                     //Redis key
                     let redis_key1 = format!("webhook-expire-{}-0",object_id);
                     let redis_key2 = format!("webhook-context-{}",object_id);

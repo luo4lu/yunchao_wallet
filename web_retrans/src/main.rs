@@ -46,7 +46,6 @@ async fn main() {
         }
         let object_id = &pubsub_msg[15..pubsub_msg.len()-2];
         let redis_key2 = format!("{}-{}",String::from("webhook-context"),object_id);
-        info!("key2={}",redis_key2);
         let result: String = match conn.get(redis_key2.clone()).await{
             Ok(v) => v,
             Err(error) => {
@@ -56,14 +55,22 @@ async fn main() {
         };
         //结果反序列
         let result_json: serde_json::Value = serde_json::from_str(&result).unwrap();
-        let app_id: String = result_json["wallet_id"]["appid"].as_str().unwrap().to_string();
+        info!("Recv data result == {:?}",result_json);
+        let wallet_id: String = result_json["wallet_id"].as_str().unwrap().to_string();
         //数据库连接 获取webhook推送地址
         let pool: Pool = config::get_db();
         let mut conn_mysql = pool.get_conn().await.unwrap();
+        let sql_str1 = format!("select appid from wallet where id = \'{}\'",wallet_id);
+        let row1: Vec<Row> = conn_mysql.query(sql_str1).await.unwrap();
+        if row1.is_empty(){
+            warn!("wallet select failed！！");
+            continue;
+        }
+        let app_id: String = row1[0].get(0).unwrap();
         let sql_str = format!("select web_url from user_info where appid = \'{}\'",app_id);
         let row: Vec<Row> = conn_mysql.query(sql_str).await.unwrap();
         if row.is_empty(){
-            warn!("select failed！！");
+            warn!("user_info select failed！！");
             continue;
         }
         //释放资源
@@ -98,6 +105,7 @@ async fn main() {
                 }
             };
             let redis_key1 = format!("{}-{}-{}",head_str1,object_id,s);
+            info!("Retrans-key ===== {}",redis_key1);
             let _: () = conn.set(redis_key1.clone(),s).await.unwrap();
             let _: () = conn.expire(redis_key1,at_time).await.unwrap();
             continue;
