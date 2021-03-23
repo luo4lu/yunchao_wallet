@@ -35,15 +35,16 @@ async fn main() {
     loop {
         let mut pubsub_stream = pubsub_conn.on_message();
         let pubsub_msg: String = pubsub_stream.next().await.unwrap().get_payload().unwrap();
-        let number = &pubsub_msg[pubsub_msg.len()-1..];
-        let y = number.parse::<u32>().unwrap() + 1;
-        let s = y.to_string();
+        
         //读取文件获取下一次超时重传键
         let head_str1 = &pubsub_msg[0..14];
         if head_str1 != "webhook-expire" {
             warn!("this redis key not need listen:{}",pubsub_msg);
             continue;
         }
+        let number = &pubsub_msg[pubsub_msg.len()-1..];
+        let y = number.parse::<u32>().unwrap() + 1;
+        let s = y.to_string();
         let object_id = &pubsub_msg[15..pubsub_msg.len()-2];
         let redis_key2 = format!("{}-{}",String::from("webhook-context"),object_id);
         let result: String = match conn.get(redis_key2.clone()).await{
