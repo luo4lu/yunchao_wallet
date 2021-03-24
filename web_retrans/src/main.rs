@@ -13,7 +13,7 @@ mod config;
 
 #[tokio::main]
 async fn main() {
-    simple_logger::init_with_level(Level::Warn).unwrap();
+    simple_logger::init_with_level(Level::Info).unwrap();
     //读取配置文件设置kafka初始状态
     let file = match File::open("./config/config_file.json") {
         Ok(f) => f,
@@ -35,7 +35,11 @@ async fn main() {
     loop {
         let mut pubsub_stream = pubsub_conn.on_message();
         let pubsub_msg: String = pubsub_stream.next().await.unwrap().get_payload().unwrap();
-        
+
+        if 15 > pubsub_msg.len() {
+            warn!("this redis key not need listen:{}",pubsub_msg);
+            continue;
+        }
         //读取文件获取下一次超时重传键
         let head_str1 = &pubsub_msg[0..14];
         if head_str1 != "webhook-expire" {
