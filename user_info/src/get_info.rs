@@ -39,9 +39,16 @@ pub async fn get_user_info(
     let pool: Pool = config::get_db();
     let mut conn = pool.get_conn().await.unwrap();
     let sql_str = format!("select appid, web_url, create_time from user_info where appid = \'{}\'",id);
-    let row: Vec<Row> = conn.query(sql_str).await.unwrap();
+    let row: Vec<Row> = match conn.query(sql_str).await{
+        Ok(v) => v,
+        Err(error)=>{
+            warn!("select user_info check web url failed:{}",error.to_string());
+            return HttpResponse::Ok().json(ResponseBody::<String>::return_unwrap_error(error.to_string()));
+        }
+    };
     if row.is_empty(){
         warn!("select failed！！");
+        return HttpResponse::Ok().json(ResponseBody::<()>::object_not_exit())
     }
     drop(conn);
     pool.disconnect().await.unwrap();
