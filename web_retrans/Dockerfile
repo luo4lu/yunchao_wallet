@@ -24,4 +24,4 @@ COPY --from=builder /workspace/target/release/web_retrans .
 
 EXPOSE 5000
 
-ENTRYPOINT [ "./web_retrans" ]
+ENTRYPOINT [ "RUST_LOG=warn ./web_retrans" ]

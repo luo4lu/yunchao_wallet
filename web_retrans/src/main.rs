@@ -1,4 +1,4 @@
-use log::Level;
+//use log::Level;
 use log:: {info,warn};
 use mysql_async::{Row, Pool};
 use mysql_async::prelude::Queryable;
@@ -13,7 +13,8 @@ mod config;
 
 #[tokio::main]
 async fn main() {
-    simple_logger::init_with_level(Level::Info).unwrap();
+    env_logger::init();
+    //simple_logger::init_with_level(Level::Info).unwrap();
     //读取配置文件设置kafka初始状态
     let file = match File::open("./config/config_file.json") {
         Ok(f) => f,

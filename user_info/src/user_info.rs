@@ -34,7 +34,7 @@ use mysql_async::prelude::Queryable;
  pub async fn user_info_save(
      req: web::Json<UserInfoRequest>
  )-> impl Responder {
-
+    warn!("RECV={:?}",req);
     //连接数据库
     let pool: Pool = config::get_db();
     let mut conn = pool.get_conn().await.unwrap();

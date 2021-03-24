@@ -3,5 +3,5 @@
     "dbname":"root",
     "dbbase":"test_db",
     "dbpass":"mysql",
-    "userinfo_addr":"0.0.0.0:9011"
+    "userinfo_addr":"0.0.0.0:9013"
 }

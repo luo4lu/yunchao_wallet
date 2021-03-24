@@ -17,6 +17,7 @@ async fn main() -> std::io::Result<()> {
     let reader = BufReader::new(file);
     let value: serde_json::Value = serde_json::from_reader(reader).unwrap();
     let pay_addr: String = value["userinfo_addr"].as_str().unwrap().to_string();
+    
     HttpServer::new(|| {
         App::new()
             .service(user_info::user_info_save)

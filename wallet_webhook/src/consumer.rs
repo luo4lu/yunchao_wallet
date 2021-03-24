@@ -205,6 +205,7 @@ pub async fn consumer_server()
                 .await
                 .unwrap();
                 let code_status = request_info.status().as_u16();
+                info!("data commit success,code_status = {:?}",code_status);
                 if code_status != 200 {
                      info!("webhook reqwest failed,into write retrans listen!!");
                     //Redis key

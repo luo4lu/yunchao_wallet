@@ -24,4 +24,4 @@ COPY --from=builder /workspace/target/release/wallet_webhook .
 
 EXPOSE 5000
 
-ENTRYPOINT [ "./wallet_webhook" ]
+ENTRYPOINT [ "RUST_LOG=warn ./wallet_webhook" ]
