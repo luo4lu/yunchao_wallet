@@ -1,7 +1,7 @@
 FROM rust:alpine as builder
 
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories \
-    && apk add openssl-dev build-base --no-cache
+    && apk add openssl-dev build-base bash --no-cache
 
 #FROM registry.cn-hongkong.aliyuncs.com/cloud-api/digital_transaction:builder as builder
 

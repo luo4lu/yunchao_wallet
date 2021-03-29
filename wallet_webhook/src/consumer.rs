@@ -58,6 +58,11 @@ type LoggingConsumer = StreamConsumer<CustomContext>;
 pub async fn consumer_server()
 {
     //配置事件信息
+    let wallet_create = String::from("wallet.create");
+    let wallet_rst_pwd = String::from("wallet.rst_pwd");
+    let settle_create = String::from("settle.create");
+    let settle_confirm = String::from("settle.confirm");
+    let settle_remove = String::from("settle.remove");
     let recharge = String::from("recharge.create");
     let withdraw = String::from("withdraw.create");
     let transfer = String::from("transfer.create");
@@ -139,7 +144,7 @@ pub async fn consumer_server()
                         continue;
                     }
                 };
-                let mut object_data = payload.data;
+                let object_data = payload.data;
                 info!("Payload == {:?}",object_data);
                 let code = payload.code;
                 let mut _send_event: String = String::new();
@@ -150,6 +155,10 @@ pub async fn consumer_server()
                         _send_event = String::from("withdraw.succeeded");
                     }else if transfer == recv_event{
                         _send_event = String::from("transfer.succeeded");
+                    }else if wallet_create ==recv_event || wallet_rst_pwd==recv_event {
+                        _send_event = String::from("wallet.succeeded");
+                    }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
+                        _send_event = String::from("settle.succeeded");
                     }else{
                         info!("{:?} this key value not need,into get next message.",recv_event);
                         continue;
@@ -162,21 +171,29 @@ pub async fn consumer_server()
                         _send_event = String::from("withdraw.failed");
                     }else if transfer == recv_event{
                         _send_event = String::from("transfer.failed");
+                    }else if  wallet_create ==recv_event || wallet_rst_pwd==recv_event {
+                        _send_event = String::from("wallet.failed");
+                    }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
+                        _send_event = String::from("settle.failed");
                     }else{
                         info!("{:?} this key value not need,into get next message.",recv_event);
                         continue;
                     }
                 }
-                //提交消费通知
-                consumer.commit_message(&m, CommitMode::Async).unwrap();
+                //获取数据格式
+                let mut _app_id = String::new();
+                let mut _object_id = String::new();   
+                if wallet_create ==recv_event || wallet_rst_pwd==recv_event {
+                    _app_id = object_data["appid"].as_str().unwrap().to_string();
+                    _object_id = object_data["id"].as_str().unwrap().to_string();
+                }else{
+                    _app_id = object_data["wallet_id"]["appid"].as_str().unwrap().to_string();
+                    _object_id = object_data["id"].as_str().unwrap().to_string();
+                }
                 //数据库连接
                 let pool: Pool = config::get_db();
                 let mut conn = pool.get_conn().await.unwrap();
-                let app_id: String = object_data["wallet_id"]["appid"].as_str().unwrap().to_string();
-                let wallet_id: String = object_data["wallet_id"]["id"].as_str().unwrap().to_string();
-                let object_id: String = object_data["id"].as_str().unwrap().to_string();
-                object_data["wallet_id"] = serde_json::Value::String(wallet_id);
-                let sql_str = format!("select web_url, create_time from user_info where appid = \'{}\'",app_id);
+                let sql_str = format!("select web_url, create_time from user_info where appid = \'{}\'",_app_id);
                 let row: Vec<Row> = conn.query(sql_str).await.unwrap();
                 if row.is_empty(){
                     info!("select failed！！");
@@ -190,7 +207,7 @@ pub async fn consumer_server()
                 let create_time: NaiveDateTime = row[0].get(1).unwrap();
                 let created: i64 = create_time.timestamp();
                 let params: WebhookReqwest = WebhookReqwest{
-                    id: object_id.clone(),
+                    id: _object_id.clone(),
                     event_type: String::from("event"),
                     created,
                     event: _send_event,
@@ -204,14 +221,16 @@ pub async fn consumer_server()
                 .send()
                 .await
                 .unwrap();
+                //提交消费通知
+                consumer.commit_message(&m, CommitMode::Async).unwrap();
                 let code_status = request_info.status().as_u16();
                 info!("data commit success,code_status = {:?}",code_status);
                 if code_status != 200 {
                      info!("webhook reqwest failed,into write retrans listen!!");
                     //Redis key
-                    let redis_key1 = format!("webhook-expire-{}-0",object_id);
-                    let redis_key2 = format!("webhook-context-{}",object_id);
-                    let object_str: String = serde_json::to_string(&object_data).unwrap();
+                    let redis_key1 = format!("webhook-expire-{}-0",_object_id);
+                    let redis_key2 = format!("webhook-context-{}",_object_id);
+                    let object_str: String = serde_json::to_string(&params).unwrap();
                     let _: () = con.set(redis_key1.clone(),1).await.unwrap();
                     let _: () = con.expire(redis_key1,5).await.unwrap();
                     let _: () = con.set(redis_key2.clone(),object_str).await.unwrap();

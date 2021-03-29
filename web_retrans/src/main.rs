@@ -62,11 +62,10 @@ async fn main() {
         //结果反序列
         let result_json: serde_json::Value = serde_json::from_str(&result).unwrap();
         info!("Recv data result == {:?}",result_json);
-        let wallet_id: String = result_json["wallet_id"].as_str().unwrap().to_string();
         //数据库连接 获取webhook推送地址
         let pool: Pool = config::get_db();
         let mut conn_mysql = pool.get_conn().await.unwrap();
-        let sql_str1 = format!("select appid from wallet where id = \'{}\'",wallet_id);
+        let sql_str1 = format!("select appid from wallet where id = \'{}\'",object_id);
         let row1: Vec<Row> = conn_mysql.query(sql_str1).await.unwrap();
         if row1.is_empty(){
             warn!("wallet select failed！！");
