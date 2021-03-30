@@ -50,7 +50,7 @@ async fn main() {
         let number = &pubsub_msg[pubsub_msg.len()-1..];
         let y = number.parse::<u32>().unwrap() + 1;
         let s = y.to_string();
-        let object_id = &pubsub_msg[15..pubsub_msg.len()-2];
+        let mut object_id = &pubsub_msg[15..pubsub_msg.len()-2];
         let redis_key2 = format!("{}-{}",String::from("webhook-context"),object_id);
         let result: String = match conn.get(redis_key2.clone()).await{
             Ok(v) => v,
@@ -61,7 +61,11 @@ async fn main() {
         };
         //结果反序列
         let result_json: serde_json::Value = serde_json::from_str(&result).unwrap();
-        info!("Recv data result == {:?}",result_json);
+        let event: String = result_json["event"].as_str().unwrap().to_string(); 
+        if !(event == String::from("wallet.failed") || event == String::from("wallet.succeeded")){
+            object_id = result_json["data"]["wallet_id"]["id"].as_str().unwrap();
+        }
+        info!("Recv data result == {:?}====object_id == {}",result_json, object_id);
         //数据库连接 获取webhook推送地址
         let pool: Pool = config::get_db();
         let mut conn_mysql = pool.get_conn().await.unwrap();
