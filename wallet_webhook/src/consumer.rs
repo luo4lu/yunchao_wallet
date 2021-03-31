@@ -147,6 +147,7 @@ pub async fn consumer_server()
                 let object_data = payload.data;
                 info!("Payload == {:?}",object_data);
                 let code = payload.code;
+                info!("Payload CODE ==={}",code);
                 let mut _send_event: String = String::new();
                 if 0 == code {
                     if recharge == recv_event{
@@ -186,11 +187,14 @@ pub async fn consumer_server()
                 if wallet_create ==recv_event || wallet_rst_pwd==recv_event {
                     _app_id = object_data["appid"].as_str().unwrap().to_string();
                     _object_id = object_data["id"].as_str().unwrap().to_string();
+                    info!("Rcev event is wallet object: appid=={}---id=={}",_app_id,_object_id);
                 }else{
                     _app_id = object_data["wallet_id"]["appid"].as_str().unwrap().to_string();
                     _object_id = object_data["id"].as_str().unwrap().to_string();
+                    info!("Rcev event is other object: appid=={}---id=={}",_app_id,_object_id);
                 }
                 //数据库连接
+                info!("connect mysql data base!!!!!!!!!!!!!!!!!");
                 let pool: Pool = config::get_db();
                 let mut conn = pool.get_conn().await.unwrap();
                 let sql_str = format!("select web_url, create_time from user_info where appid = \'{}\'",_app_id);
@@ -200,6 +204,7 @@ pub async fn consumer_server()
                     continue;
                 }
                 //释放资源
+                info!("delete mysql data base!!!!!!!!!!!!!!{:?}",row);
                 drop(conn);
                 pool.disconnect().await.unwrap();
 
@@ -214,7 +219,7 @@ pub async fn consumer_server()
                     data: object_data.clone()
                 };
                 let info_client = Client::new();
-               
+                info!("send object data to webhook!!!!!");
                 let request_info = info_client
                 .post(&web_url)
                 .json(&params)
