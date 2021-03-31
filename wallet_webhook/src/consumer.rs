@@ -206,7 +206,14 @@ pub async fn consumer_server()
                 //释放资源
                 info!("delete mysql data base!!!!!!!!!!!!!!{:?}",row);
                 drop(conn);
-                pool.disconnect().await.unwrap();
+                match pool.disconnect().await{
+                    Ok(_) => {
+                        info!("pool resource delete success!!");
+                    }
+                    Err(error) => {
+                        warn!("pool resource delete failed!!{:?}",error);
+                    }
+                };
 
                 let web_url: String = row[0].get(0).unwrap();
                 let create_time: NaiveDateTime = row[0].get(1).unwrap();
