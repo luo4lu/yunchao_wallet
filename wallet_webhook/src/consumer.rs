@@ -215,9 +215,21 @@ pub async fn consumer_server()
                     }
                 };
 
-                let web_url: String = row[0].get(0).unwrap();
-                let create_time: NaiveDateTime = row[0].get(1).unwrap();
-                let created: i64 = create_time.timestamp();
+                let web_url: String = match row[0].get(0){
+                    Some(v) => v,
+                    None => {
+                        warn!("row get 0 value is none");
+                        String::from("None")
+                    }
+                };
+                let create_time: Option<NaiveDateTime> = match row[0].get(1){
+                    Some(v) => v,
+                    None => {
+                        warn!("row get 1 value is none");
+                        continue;
+                    }
+                };
+                let created: i64 = create_time.unwrap().timestamp();
                 let params: WebhookReqwest = WebhookReqwest{
                     id: _object_id.clone(),
                     event_type: String::from("event"),
