@@ -6,7 +6,6 @@ use futures::StreamExt;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use chrono::{NaiveDateTime};
-use reqwest::Client;
 use rdkafka::client::ClientContext;
 use rdkafka::config::{ClientConfig, RDKafkaLogLevel};
 use rdkafka::consumer::stream_consumer::StreamConsumer;
@@ -229,16 +228,20 @@ pub async fn consumer_server()
                     }
                 };
                 let created: i64 = create_time.unwrap().timestamp();
-                info!("11111111111111111111111");
                 let params: WebhookReqwest = WebhookReqwest{
                     id: _object_id.clone(),
                     event_type: String::from("event"),
                     created,
                     event: _send_event,
-                    data: object_data.clone()
+                    data: object_data
                 };
-                info!("222222222222222222====={:?}",params);
-                let info_client = Client::new();
+                let info_client = match reqwest::Client::builder().build(){
+                    Ok(v) => v,
+                    Err(error) => {
+                        warn!("reqwest build client failed!!:{:?}",error);
+                        continue;
+                    }
+                };
                 info!("send object data to webhook!!!!!");
                 let request_info = info_client
                 .post(&web_url)
