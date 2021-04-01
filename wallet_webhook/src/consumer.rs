@@ -214,7 +214,6 @@ pub async fn consumer_server()
                         warn!("pool resource delete failed!!{:?}",error);
                     }
                 };
-                info!("d11111111111111111111111111111111");
                 let web_url: String = match row[0].get(0){
                     Some(v) => v,
                     None => {
@@ -229,8 +228,8 @@ pub async fn consumer_server()
                         continue;
                     }
                 };
-                info!("22222222222222222222222222222222");
                 let created: i64 = create_time.unwrap().timestamp();
+                info!("11111111111111111111111");
                 let params: WebhookReqwest = WebhookReqwest{
                     id: _object_id.clone(),
                     event_type: String::from("event"),
@@ -238,6 +237,7 @@ pub async fn consumer_server()
                     event: _send_event,
                     data: object_data.clone()
                 };
+                info!("222222222222222222====={:?}",params);
                 let info_client = Client::new();
                 info!("send object data to webhook!!!!!");
                 let request_info = info_client
