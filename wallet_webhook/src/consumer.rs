@@ -99,6 +99,10 @@ pub async fn consumer_server()
             return;
         }
     };
+    //启动一个reqwest客户端连接句柄
+    info!("start request malloc client");
+    let info_client = reqwest::Client::new();
+    info!("end request malloc client");
 
     let consumer: LoggingConsumer = ClientConfig::new()
         .set("group.id", group_id)
@@ -233,17 +237,6 @@ pub async fn consumer_server()
                     created,
                     event: _send_event,
                     data: object_data
-                };
-                info!("start request malloc client");
-                let info_client = match reqwest::Client::builder().build(){
-                    Ok(v) => {
-                        info!("reqwest malloc client success");
-                        v
-                    }
-                    Err(error) => {
-                        warn!("reqwest build client failed!!:{:?}",error);
-                        continue;
-                    }
                 };
                 info!("send object data to webhook!!!!!");
                 let request_info = info_client
