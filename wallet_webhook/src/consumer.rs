@@ -203,7 +203,6 @@ pub async fn consumer_server()
                     continue;
                 }
                 //释放资源
-                info!("delete mysql data base!!!!!!!!!!!!!!{:?}",row);
                 drop(conn);
                 match pool.disconnect().await{
                     Ok(_) => {
@@ -235,8 +234,12 @@ pub async fn consumer_server()
                     event: _send_event,
                     data: object_data
                 };
+                info!("start request malloc client");
                 let info_client = match reqwest::Client::builder().build(){
-                    Ok(v) => v,
+                    Ok(v) => {
+                        info!("reqwest malloc client success");
+                        v
+                    }
                     Err(error) => {
                         warn!("reqwest build client failed!!:{:?}",error);
                         continue;
