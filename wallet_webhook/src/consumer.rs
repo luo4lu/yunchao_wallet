@@ -214,7 +214,7 @@ pub async fn consumer_server()
                         warn!("pool resource delete failed!!{:?}",error);
                     }
                 };
-
+                info!("d11111111111111111111111111111111");
                 let web_url: String = match row[0].get(0){
                     Some(v) => v,
                     None => {
@@ -229,6 +229,7 @@ pub async fn consumer_server()
                         continue;
                     }
                 };
+                info!("22222222222222222222222222222222");
                 let created: i64 = create_time.unwrap().timestamp();
                 let params: WebhookReqwest = WebhookReqwest{
                     id: _object_id.clone(),
