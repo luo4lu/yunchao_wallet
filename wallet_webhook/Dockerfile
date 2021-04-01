@@ -1,4 +1,4 @@
-FROM rust:alpine as builder
+FROM rust:buster as builder
 
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories \
     && apk add openssl-dev build-base bash --no-cache
@@ -12,7 +12,7 @@ ADD ./ /workspace
 RUN mkdir .cargo && cp cargo_config .cargo/config
 RUN CARGO_HTTP_MULTIPLEXING=false cargo build --release
 
-FROM alpine
+FROM ubuntu:focal
 
 WORKDIR /workspace
 
@@ -24,4 +24,4 @@ COPY --from=builder /workspace/target/release/wallet_webhook .
 
 EXPOSE 5000
 
-ENTRYPOINT [ "RUST_LOG=warn ./wallet_webhook" ]
+ENTRYPOINT [ "RUST_LOG=info ./wallet_webhook" ]

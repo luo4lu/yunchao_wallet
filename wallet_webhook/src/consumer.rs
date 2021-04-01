@@ -197,7 +197,6 @@ pub async fn consumer_server()
                     info!("Rcev event is other object: appid=={}---id=={}",_app_id,_object_id);
                 }
                 //数据库连接
-                info!("connect mysql data base!!!!!!!!!!!!!!!!!");
                 let pool: Pool = config::get_db();
                 let mut conn = pool.get_conn().await.unwrap();
                 let sql_str = format!("select web_url, create_time from user_info where appid = \'{}\'",_app_id);
