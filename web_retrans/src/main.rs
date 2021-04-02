@@ -96,6 +96,27 @@ async fn main() {
             Ok(v)=>v,
             Err(error)=>{
                 warn!("url={} addr analysis error:{:?}",web_url,error);
+                //重新写入redis
+                let file_r = match File::open("./config/retrans_conf.json") {
+                    Ok(f) => f,
+                    Err(_error) => {
+                        warn!("The configuration file does not exist:{:?}", "retrans_conf.json");
+                        return ;
+                    }
+                };
+                let reader_r = BufReader::new(file_r);
+                let value_r: serde_json::Value = serde_json::from_reader(reader_r).unwrap();
+                let at_time: usize = match value_r[s.clone()].as_u64(){
+                    Some(t) => t as usize,
+                    None => {
+                        let _:() = conn.del(redis_key2).await.unwrap();
+                        continue;
+                    }
+                };
+                let redis_key1 = format!("{}-{}-{}",head_str1,object_id,s);
+                info!("Retrans-key ===== {}",redis_key1);
+                let _: () = conn.set(redis_key1.clone(),s).await.unwrap();
+                let _: () = conn.expire(redis_key1,at_time).await.unwrap();
                 continue;
             }
         };
