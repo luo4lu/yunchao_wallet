@@ -88,12 +88,17 @@ async fn main() {
         let web_url: String = row[0].get(0).unwrap();
         let info_client = Client::new();
                
-        let request_info = info_client
+        let request_info = match info_client
         .post(&web_url)
         .json(&result_json)
         .send()
-        .await
-        .unwrap();
+        .await{
+            Ok(v)=>v,
+            Err(error)=>{
+                warn!("url={} addr analysis error:{:?}",web_url,error);
+                continue;
+            }
+        };
         let code_status = request_info.status().as_u16();
         if code_status != 200 {
             //重新写入redis
