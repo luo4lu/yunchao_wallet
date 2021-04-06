@@ -50,7 +50,7 @@ async fn main() {
         let number = &pubsub_msg[pubsub_msg.len()-1..];
         let y = number.parse::<u32>().unwrap() + 1;
         let s = y.to_string();
-        let mut object_id = &pubsub_msg[15..pubsub_msg.len()-2];
+        let object_id = &pubsub_msg[15..pubsub_msg.len()-2];
         let redis_key2 = format!("{}-{}",String::from("webhook-context"),object_id);
         let result: String = match conn.get(redis_key2.clone()).await{
             Ok(v) => v,
@@ -60,16 +60,18 @@ async fn main() {
             }
         };
         //结果反序列
+        let mut wallet_id = object_id;
         let result_json: serde_json::Value = serde_json::from_str(&result).unwrap();
         let event: String = result_json["event"].as_str().unwrap().to_string(); 
         if !(event == String::from("wallet.failed") || event == String::from("wallet.succeeded")){
-            object_id = result_json["data"]["wallet_id"]["id"].as_str().unwrap();
+            info!("current event = {}",event);
+            wallet_id = result_json["data"]["wallet_id"]["id"].as_str().unwrap();
         }
         info!("Recv data result == {:?}====object_id == {}",result_json, object_id);
         //数据库连接 获取webhook推送地址
         let pool: Pool = config::get_db();
         let mut conn_mysql = pool.get_conn().await.unwrap();
-        let sql_str1 = format!("select appid from wallet where id = \'{}\'",object_id);
+        let sql_str1 = format!("select appid from wallet where id = \'{}\'",wallet_id);
         let row1: Vec<Row> = conn_mysql.query(sql_str1).await.unwrap();
         if row1.is_empty(){
             warn!("wallet select failed！！");
