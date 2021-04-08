@@ -17,6 +17,7 @@ use mysql_async::{Row, Pool};
 use mysql_async::prelude::Queryable;
 use redis::AsyncCommands;
 use sodiumoxide::crypto::box_;
+use base64;
 
 //kafka监听消息结构
 #[derive(Deserialize,Serialize, Debug)]
@@ -190,11 +191,7 @@ pub async fn consumer_server()
                 let mut _app_id = String::new();
                 let mut _object_id = String::new();   
                 if wallet_create ==recv_event || wallet_rst_pwd==recv_event {
-                    _app_id = object_data["appid"].as_str().unwrap().to_string();
-                    _object_id = object_data["id"].as_str().unwrap().to_string();
-                    info!("Rcev event is wallet object: appid=={}---id=={}",_app_id,_object_id);
-                }else{
-                    _app_id = match object_data["wallet_id"]["appid"].as_str(){
+                    _app_id = match object_data["appid"].as_str(){
                         Some(v) => v.to_string(),
                         None => {
                             warn!("1.get appid is None!");
@@ -205,7 +202,25 @@ pub async fn consumer_server()
                     _object_id = match object_data["id"].as_str(){
                         Some(v) => v.to_string(),
                         None => {
-                            warn!("1.get appid is None!");
+                            warn!("2.get appid is None!");
+                            consumer.commit_message(&m, CommitMode::Async).unwrap();
+                            continue
+                        }
+                    };
+                    info!("Rcev event is wallet object: appid=={}---id=={}",_app_id,_object_id);
+                }else{
+                    _app_id = match object_data["wallet_id"]["appid"].as_str(){
+                        Some(v) => v.to_string(),
+                        None => {
+                            warn!("3.get appid is None!");
+                            consumer.commit_message(&m, CommitMode::Async).unwrap();
+                            continue
+                        }
+                    };
+                    _object_id = match object_data["id"].as_str(){
+                        Some(v) => v.to_string(),
+                        None => {
+                            warn!("4.get appid is None!");
                             consumer.commit_message(&m, CommitMode::Async).unwrap();
                             continue
                         }
@@ -264,10 +279,10 @@ pub async fn consumer_server()
                 }
                 let user_pkc: String = row2[0].get(0).unwrap();
                 let root_index: i64 = row2[0].get(1).unwrap();
-                let sql_str3 = format!("select sk0 from consumer_v2 where id = {}",root_index);
+                let sql_str3 = format!("select sk0 from root_v2 where id = {}",root_index);
                 let row3: Vec<Row> = conn2.query(sql_str3).await.unwrap();
                 if row3.is_empty(){
-                    info!("secret consumer_v2 select failed！！");
+                    info!("secret root_v2 select failed！！");
                     continue;
                 }
                 let root_sk0: String = row3[0].get(0).unwrap();
@@ -284,10 +299,10 @@ pub async fn consumer_server()
 
                 let send_params = serde_json::to_vec(&params).unwrap();
                 let nonce = box_::gen_nonce();
-                let pk = box_::PublicKey::from_slice(user_pkc.as_bytes()).unwrap();
-                let sk = box_::SecretKey::from_slice(root_sk0.as_bytes()).unwrap();
+                let pk = box_::PublicKey::from_slice(&base64::decode(user_pkc).unwrap()).unwrap();
+                let sk = box_::SecretKey::from_slice(&base64::decode(root_sk0).unwrap()).unwrap();
                 let their_precomputed_key = box_::precompute(&pk, &sk);
-                let ciphertext = box_::open_precomputed(&send_params, &nonce, &their_precomputed_key).unwrap();
+                let ciphertext = box_::seal_precomputed(&send_params, &nonce, &their_precomputed_key);
                 info!("send object data to webhook!!!!!");
                 let request_info = info_client
                 .post(&web_url)

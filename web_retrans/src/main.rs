@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::BufReader;
 use futures_util::StreamExt as _;
 use sodiumoxide::crypto::box_;
-
+use base64;
 mod config;
 
 
@@ -123,10 +123,10 @@ async fn main() {
 
         let send_params = serde_json::to_vec(&result_json).unwrap();
         let nonce = box_::gen_nonce();
-        let pk = box_::PublicKey::from_slice(user_pkc.as_bytes()).unwrap();
-        let sk = box_::SecretKey::from_slice(root_sk0.as_bytes()).unwrap();
+        let pk = box_::PublicKey::from_slice(&base64::decode(user_pkc).unwrap()).unwrap();
+        let sk = box_::SecretKey::from_slice(&base64::decode(root_sk0).unwrap()).unwrap();
         let their_precomputed_key = box_::precompute(&pk, &sk);
-        let ciphertext = box_::open_precomputed(&send_params, &nonce, &their_precomputed_key).unwrap();
+        let ciphertext = box_::seal_precomputed(&send_params, &nonce, &their_precomputed_key);
 
         let request_info = match info_client
         .post(&web_url)
