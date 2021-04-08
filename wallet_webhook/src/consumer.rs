@@ -197,7 +197,7 @@ pub async fn consumer_server()
                 //获取数据格式
                 let mut _app_id = String::new();
                 let mut _object_id = String::new();   
-                if wallet_create ==recv_event || wallet_rst_pwd==recv_event {
+                if wallet_create ==recv_event {
                     _app_id = match object_data["appid"].as_str(){
                         Some(v) => v.to_string(),
                         None => {
