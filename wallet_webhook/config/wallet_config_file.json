@@ -9,6 +9,7 @@
     "dbaddr":"192.168.8.166",
     "dbname":"root",
     "dbbase":"test_db",
+    "dbbase2":"test_db",
     "dbpass":"mysql",
     "kafka_server":"192.168.8.166:9092",
     "redis_addr":"192.168.8.166"

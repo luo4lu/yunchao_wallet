@@ -16,6 +16,7 @@ use rdkafka::topic_partition_list::TopicPartitionList;
 use mysql_async::{Row, Pool};
 use mysql_async::prelude::Queryable;
 use redis::AsyncCommands;
+use sodiumoxide::crypto::box_;
 
 //kafka监听消息结构
 #[derive(Deserialize,Serialize, Debug)]
@@ -59,6 +60,7 @@ pub async fn consumer_server()
     //配置事件信息
     let wallet_create = String::from("wallet.create");
     let wallet_rst_pwd = String::from("wallet.rst_pwd");
+    let wallet_bk = String::from("wallet.bk_query");
     let settle_create = String::from("settle.create");
     let settle_confirm = String::from("settle.confirm");
     let settle_remove = String::from("settle.remove");
@@ -159,7 +161,7 @@ pub async fn consumer_server()
                         _send_event = String::from("withdraw.succeeded");
                     }else if transfer == recv_event{
                         _send_event = String::from("transfer.succeeded");
-                    }else if wallet_create ==recv_event || wallet_rst_pwd==recv_event {
+                    }else if wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event {
                         _send_event = String::from("wallet.succeeded");
                     }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
                         _send_event = String::from("settle.succeeded");
@@ -175,7 +177,7 @@ pub async fn consumer_server()
                         _send_event = String::from("withdraw.failed");
                     }else if transfer == recv_event{
                         _send_event = String::from("transfer.failed");
-                    }else if  wallet_create ==recv_event || wallet_rst_pwd==recv_event {
+                    }else if  wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event{
                         _send_event = String::from("wallet.failed");
                     }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
                         _send_event = String::from("settle.failed");
@@ -192,8 +194,22 @@ pub async fn consumer_server()
                     _object_id = object_data["id"].as_str().unwrap().to_string();
                     info!("Rcev event is wallet object: appid=={}---id=={}",_app_id,_object_id);
                 }else{
-                    _app_id = object_data["wallet_id"]["appid"].as_str().unwrap().to_string();
-                    _object_id = object_data["id"].as_str().unwrap().to_string();
+                    _app_id = match object_data["wallet_id"]["appid"].as_str(){
+                        Some(v) => v.to_string(),
+                        None => {
+                            warn!("1.get appid is None!");
+                            consumer.commit_message(&m, CommitMode::Async).unwrap();
+                            continue
+                        }
+                    };
+                    _object_id = match object_data["id"].as_str(){
+                        Some(v) => v.to_string(),
+                        None => {
+                            warn!("1.get appid is None!");
+                            consumer.commit_message(&m, CommitMode::Async).unwrap();
+                            continue
+                        }
+                    };
                     info!("Rcev event is other object: appid=={}---id=={}",_app_id,_object_id);
                 }
                 //数据库连接
@@ -237,10 +253,45 @@ pub async fn consumer_server()
                     event: _send_event,
                     data: object_data
                 };
+                //数据库连接 查询平台秘钥与用户公钥
+                let pool2: Pool = config::get_db2();
+                let mut conn2 = pool2.get_conn().await.unwrap();
+                let sql_str2 = format!("select pkc, root_index from consumer_v2 where api_key = \'{}\'",_app_id);
+                let row2: Vec<Row> = conn2.query(sql_str2).await.unwrap();
+                if row2.is_empty(){
+                    info!("secret consumer_v2 select failed！！");
+                    continue;
+                }
+                let user_pkc: String = row2[0].get(0).unwrap();
+                let root_index: i64 = row2[0].get(1).unwrap();
+                let sql_str3 = format!("select sk0 from consumer_v2 where id = {}",root_index);
+                let row3: Vec<Row> = conn2.query(sql_str3).await.unwrap();
+                if row3.is_empty(){
+                    info!("secret consumer_v2 select failed！！");
+                    continue;
+                }
+                let root_sk0: String = row3[0].get(0).unwrap();
+                //释放资源
+                drop(conn2);
+                match pool2.disconnect().await{
+                    Ok(_) => {
+                        info!("pool resource delete success!!");
+                    }
+                    Err(error) => {
+                        warn!("pool resource delete failed!!{:?}",error);
+                    }
+                };
+
+                let send_params = serde_json::to_vec(&params).unwrap();
+                let nonce = box_::gen_nonce();
+                let pk = box_::PublicKey::from_slice(user_pkc.as_bytes()).unwrap();
+                let sk = box_::SecretKey::from_slice(root_sk0.as_bytes()).unwrap();
+                let their_precomputed_key = box_::precompute(&pk, &sk);
+                let ciphertext = box_::open_precomputed(&send_params, &nonce, &their_precomputed_key).unwrap();
                 info!("send object data to webhook!!!!!");
                 let request_info = info_client
                 .post(&web_url)
-                .json(&params)
+                .body(ciphertext)
                 .send()
                 .await
                 .unwrap();

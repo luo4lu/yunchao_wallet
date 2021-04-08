@@ -7,6 +7,7 @@ use reqwest::Client;
 use std::fs::File;
 use std::io::BufReader;
 use futures_util::StreamExt as _;
+use sodiumoxide::crypto::box_;
 
 mod config;
 
@@ -29,7 +30,10 @@ async fn main() {
     let redis: &str = value_name["redis_addr"].as_str().unwrap();
     let redis_path = format!("redis://{}/",redis);
     let redis_client = redis::Client::open(redis_path).unwrap();
-
+    //启动一个reqwest客户端连接句柄
+    info!("start request malloc client");
+    let info_client = Client::new();
+    info!("end request malloc client");
     let mut pubsub_conn = redis_client.get_async_connection().await.unwrap().into_pubsub();
     let mut conn = redis_client.get_async_connection().await.unwrap();
     pubsub_conn.subscribe("__keyevent@0__:expired").await.unwrap();
@@ -88,11 +92,45 @@ async fn main() {
         drop(conn_mysql);
         pool.disconnect().await.unwrap();
         let web_url: String = row[0].get(0).unwrap();
-        let info_client = Client::new();
-               
+        //数据库连接 查询平台秘钥与用户公钥
+        let pool2: Pool = config::get_db2();
+        let mut conn2 = pool2.get_conn().await.unwrap();
+        let sql_str2 = format!("select pkc, root_index from consumer_v2 where api_key = \'{}\'",app_id);
+        let row2: Vec<Row> = conn2.query(sql_str2).await.unwrap();
+        if row2.is_empty(){
+            info!("secret consumer_v2 select failed！！");
+            continue;
+        }
+        let user_pkc: String = row2[0].get(0).unwrap();
+        let root_index: i64 = row2[0].get(1).unwrap();
+        let sql_str3 = format!("select sk0 from consumer_v2 where id = {}",root_index);
+        let row3: Vec<Row> = conn2.query(sql_str3).await.unwrap();
+        if row3.is_empty(){
+            info!("secret consumer_v2 select failed！！");
+            continue;
+        }
+        let root_sk0: String = row3[0].get(0).unwrap();
+        //释放资源
+        drop(conn2);
+        match pool2.disconnect().await{
+            Ok(_) => {
+                info!("pool resource delete success!!");
+            }
+            Err(error) => {
+                warn!("pool resource delete failed!!{:?}",error);
+            }
+        };
+
+        let send_params = serde_json::to_vec(&result_json).unwrap();
+        let nonce = box_::gen_nonce();
+        let pk = box_::PublicKey::from_slice(user_pkc.as_bytes()).unwrap();
+        let sk = box_::SecretKey::from_slice(root_sk0.as_bytes()).unwrap();
+        let their_precomputed_key = box_::precompute(&pk, &sk);
+        let ciphertext = box_::open_precomputed(&send_params, &nonce, &their_precomputed_key).unwrap();
+
         let request_info = match info_client
         .post(&web_url)
-        .json(&result_json)
+        .body(ciphertext)
         .send()
         .await{
             Ok(v)=>v,

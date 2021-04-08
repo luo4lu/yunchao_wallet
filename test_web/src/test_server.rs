@@ -1,5 +1,6 @@
 use crate::response::ResponseBody;
 use actix_web::{post, web, HttpResponse, Responder};
+use futures::StreamExt;
 use log::{warn};
 use serde::{Deserialize, Serialize};
 
@@ -17,8 +18,13 @@ pub struct WebhookReqwest {
 
 #[post("/test/webhook")]
  pub async fn test_server_info(
-     req: web::Json<WebhookReqwest>
+     mut req: web::Payload
  )-> impl Responder {
-    warn!("Recv webhook callback message:{:?}",req);
+    let mut bytes = web::BytesMut::new();
+    while let Some(item) = req.next().await {
+        let item = item.unwrap();
+        warn!("Chunk: {:?}", &item);
+        bytes.extend_from_slice(&item);
+    }
     return HttpResponse::Ok().json(ResponseBody::<()>::new_success(None));
  }
