@@ -1,5 +1,6 @@
 //use log::Level;
 use log:: {info,warn};
+use serde::Serialize;
 use mysql_async::{Row, Pool};
 use mysql_async::prelude::Queryable;
 use redis::AsyncCommands;
@@ -10,7 +11,13 @@ use futures_util::StreamExt as _;
 use sodiumoxide::crypto::box_;
 use base64;
 mod config;
-
+//webhook密文数据通知类型
+#[derive(Debug, Serialize)]
+pub struct AuthReqwest{
+    version: u32,          
+    payload: String,     
+    nonce: String        
+}
 
 #[tokio::main]
 async fn main() {
@@ -127,10 +134,16 @@ async fn main() {
         let sk = box_::SecretKey::from_slice(&base64::decode(root_sk0).unwrap()).unwrap();
         let their_precomputed_key = box_::precompute(&pk, &sk);
         let ciphertext = box_::seal_precomputed(&send_params, &nonce, &their_precomputed_key);
-
+        let ciphertext_str = base64::encode(ciphertext);
+        let nonce_str = base64::encode(nonce);
+        let web_params = AuthReqwest{
+            version: 2,          
+            payload: ciphertext_str,     
+            nonce:nonce_str   
+        };
         let request_info = match info_client
         .post(&web_url)
-        .body(ciphertext)
+        .json(&web_params)
         .send()
         .await{
             Ok(v)=>v,

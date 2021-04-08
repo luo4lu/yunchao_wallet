@@ -37,6 +37,13 @@ pub struct WebhookReqwest {
     event: String,
     data: serde_json::Value
 }
+//webhook密文数据通知类型
+#[derive(Debug, Serialize)]
+pub struct AuthReqwest{
+    version: u32,          
+    payload: String,     
+    nonce: String        
+}
 struct CustomContext;
 
 impl ClientContext for CustomContext {}
@@ -303,10 +310,17 @@ pub async fn consumer_server()
                 let sk = box_::SecretKey::from_slice(&base64::decode(root_sk0).unwrap()).unwrap();
                 let their_precomputed_key = box_::precompute(&pk, &sk);
                 let ciphertext = box_::seal_precomputed(&send_params, &nonce, &their_precomputed_key);
+                let ciphertext_str = base64::encode(ciphertext);
+                let nonce_str = base64::encode(nonce);
+                let web_params = AuthReqwest{
+                    version: 2,          
+                    payload: ciphertext_str,     
+                    nonce:nonce_str   
+                };
                 info!("send object data to webhook!!!!!");
                 let request_info = info_client
                 .post(&web_url)
-                .body(ciphertext)
+                .json(&web_params)
                 .send()
                 .await
                 .unwrap();
