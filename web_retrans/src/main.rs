@@ -37,10 +37,7 @@ async fn main() {
     let redis: &str = value_name["redis_addr"].as_str().unwrap();
     let redis_path = format!("redis://{}/",redis);
     let redis_client = redis::Client::open(redis_path).unwrap();
-    //启动一个reqwest客户端连接句柄
-    info!("start request malloc client");
-    let info_client = Client::new();
-    info!("end request malloc client");
+    
     let mut pubsub_conn = redis_client.get_async_connection().await.unwrap().into_pubsub();
     let mut conn = redis_client.get_async_connection().await.unwrap();
     pubsub_conn.subscribe("__keyevent@0__:expired").await.unwrap();
@@ -110,7 +107,7 @@ async fn main() {
         }
         let user_pkc: String = row2[0].get(0).unwrap();
         let root_index: i64 = row2[0].get(1).unwrap();
-        let sql_str3 = format!("select sk0 from root_v2 where id = {}",root_index);
+        let sql_str3 = format!("select sk0 from consumer_v2 where id = {}",root_index);
         let row3: Vec<Row> = conn2.query(sql_str3).await.unwrap();
         if row3.is_empty(){
             info!("secret consumer_v2 select failed！！");
@@ -141,6 +138,10 @@ async fn main() {
             payload: ciphertext_str,     
             nonce:nonce_str   
         };
+        //启动一个reqwest客户端连接句柄
+        info!("start request malloc client");
+        let info_client = Client::new();
+        info!("end request malloc client");
         let request_info = match info_client
         .post(&web_url)
         .json(&web_params)

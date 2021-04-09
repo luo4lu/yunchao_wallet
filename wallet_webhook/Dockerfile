@@ -26,4 +26,4 @@ COPY --from=builder /workspace/target/release/wallet_webhook .
 
 EXPOSE 5000
 
-CMD [ "RUST_LOG=warn ./wallet_webhook" ]
+CMD [ "RUST_LOG=info ./wallet_webhook" ]
