@@ -107,7 +107,7 @@ async fn main() {
         }
         let user_pkc: String = row2[0].get(0).unwrap();
         let root_index: i64 = row2[0].get(1).unwrap();
-        let sql_str3 = format!("select sk0 from consumer_v2 where id = {}",root_index);
+        let sql_str3 = format!("select sk0 from root_v2 where id = {}",root_index);
         let row3: Vec<Row> = conn2.query(sql_str3).await.unwrap();
         if row3.is_empty(){
             info!("secret consumer_v2 select failed！！");
