@@ -2,7 +2,7 @@ use crate::config;
 use crate::response::ResponseBody;
 use crate::url_status::InfoResponse;
 use actix_web::{get, HttpResponse, Responder, HttpRequest};
-use log::{warn};
+use log::{warn,info};
 use serde::{Deserialize};
 use mysql_async::{ Row, Pool};
 use mysql_async::prelude::Queryable;
