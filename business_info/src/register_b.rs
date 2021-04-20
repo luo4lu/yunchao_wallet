@@ -100,7 +100,7 @@ use std::io::BufReader;
     pub web_url: String
  }
 
-#[post("/user/info")]
+#[post("/register/business")]
  pub async fn user_info_save(
      req: web::Json<BusinessRequest>
  )-> impl Responder {
