@@ -1,0 +1,8 @@
+{
+    "dbaddr":"192.168.8.166",
+    "dbname":"root",
+    "dbbase":"check_test",
+    "dbpass":"mysql",
+    "server_addr":"0.0.0.0:9010",
+    "email_server":"0.0.0.0:5000"
+}
