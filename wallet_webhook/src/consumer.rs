@@ -299,7 +299,7 @@ pub async fn consumer_server()
                         warn!("pool resource delete failed!!{:?}",error);
                     }
                 };
-
+                info!("public={}\nSK={}",user_pkc,root_sk0);
                 let send_params = serde_json::to_vec(&params).unwrap();
                 let nonce = box_::gen_nonce();
                 let pk = box_::PublicKey::from_slice(&base64::decode(user_pkc).unwrap()).unwrap();
