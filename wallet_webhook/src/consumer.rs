@@ -294,6 +294,7 @@ pub async fn consumer_server()
                     event: _send_event,
                     data: object_data
                 };
+                info!("Send Params: {:?}",params);
                 //数据库连接 查询平台秘钥与用户公钥
                 let pool2: Pool = config::get_db2();
                 let mut conn2 = pool2.get_conn().await.unwrap();
