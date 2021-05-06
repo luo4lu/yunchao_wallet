@@ -75,6 +75,10 @@ pub async fn consumer_server()
     let recharge = String::from("recharge.create");
     let withdraw = String::from("withdraw.create");
     let transfer = String::from("transfer.create");
+    let transfer_order = String::from("transfer.order");
+    let transfer_pay = String::from("transfer.pay");
+    let transfer_refund = String::from("transfer.refund");
+    let payment_create = String::from("payment.create");
     //读取配置文件设置kafka初始状态
     let file = match File::open("./config/wallet_config_file.json") {
         Ok(f) => f,
@@ -161,9 +165,11 @@ pub async fn consumer_server()
                 if 0 == code {
                     if recharge == recv_event{
                         _send_event = String::from("charge.succeeded");
+                    }else if payment_create == recv_event{
+                        _send_event = String::from("payment.succeeded");
                     }else if withdraw == recv_event{
                         _send_event = String::from("withdraw.succeeded");
-                    }else if transfer == recv_event{
+                    }else if transfer == recv_event || transfer_order == recv_event || transfer_pay == recv_event || transfer_refund == recv_event{
                         _send_event = String::from("transfer.succeeded");
                     }else if wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event {
                         _send_event = String::from("wallet.succeeded");
@@ -177,9 +183,11 @@ pub async fn consumer_server()
                     //系统服务没有正确响应状态，无需发送到商户服务
                     if recharge == recv_event{
                         _send_event = String::from("charge.failed");
+                    }else if payment_create == recv_event{
+                        _send_event = String::from("payment.succeeded");
                     }else if withdraw == recv_event{
                         _send_event = String::from("withdraw.failed");
-                    }else if transfer == recv_event{
+                    }else if transfer == recv_event || transfer_order == recv_event || transfer_pay == recv_event || transfer_refund == recv_event{
                         _send_event = String::from("transfer.failed");
                     }else if  wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event{
                         _send_event = String::from("wallet.failed");
