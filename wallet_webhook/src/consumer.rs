@@ -392,23 +392,23 @@ pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_js
         let channel: String = result["wallet_id"]["channel"].as_str().unwrap().to_string();
         let wallet_id: String = result["wallet_id"]["id"].as_str().unwrap().to_string();
         let amount: u64 = result["amount"].as_u64().unwrap();
-        let openid: Option<String> = match result["wallet_id"]["extra"]["openid"].as_str(){
+        let openid: Option<String> = match result["extra"]["openid"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let beans: Option<u64> = match result["wallet_id"]["extra"]["beans"].as_u64(){
+        let beans: Option<u64> = match result["extra"]["beans"].as_u64(){
             Some(v)=>Some(v),
             None => None
         };
-        let orderid: Option<String> = match result["wallet_id"]["extra"]["orderid"].as_str(){
+        let orderid: Option<String> = match result["extra"]["orderid"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let order_type: Option<String> = match result["wallet_id"]["extra"]["order_type"].as_str(){
+        let order_type: Option<String> = match result["extra"]["order_type"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let order_id: Option<String> = match result["wallet_id"]["extra"]["order_id"].as_str(){
+        let order_id: Option<String> = match result["extra"]["order_id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
@@ -424,7 +424,7 @@ pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_js
         };
         return serde_json::to_value(param).unwrap();
     }else if event == String::from("order.payed"){
-        let order_id: Option<String> = match result["wallet_id"]["extra"]["order_id"].as_str(){
+        let order_id: Option<String> = match result["extra"]["order_id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
@@ -433,11 +433,11 @@ pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_js
         };
         return serde_json::to_value(param).unwrap();
     }else if event == String::from("order.refund"){
-        let order_id: Option<String> = match result["wallet_id"]["extra"]["order_id"].as_str(){
+        let order_id: Option<String> = match result["extra"]["order_id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let refund_amount: Option<u64> = match result["wallet_id"]["extra"]["refund_amount"].as_u64(){
+        let refund_amount: Option<u64> = match result["extra"]["refund_amount"].as_u64(){
             Some(v)=>Some(v),
             None => None
         };
