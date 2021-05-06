@@ -157,7 +157,7 @@ pub async fn consumer_server()
                         continue;
                     }
                 };
-                let object_data = payload.data;
+                let mut object_data = payload.data;
                 info!("Payload == {:?}",object_data);
                 let code = payload.code;
                 info!("Payload CODE ==={}",code);
@@ -169,8 +169,14 @@ pub async fn consumer_server()
                         _send_event = String::from("payment.succeeded");
                     }else if withdraw == recv_event{
                         _send_event = String::from("withdraw.succeeded");
-                    }else if transfer == recv_event || transfer_order == recv_event || transfer_pay == recv_event || transfer_refund == recv_event{
+                    }else if transfer == recv_event{
                         _send_event = String::from("transfer.succeeded");
+                    }else if transfer_order == recv_event{
+                        _send_event = String::from("order.create");
+                    }else if transfer_pay == recv_event{
+                        _send_event = String::from("order.payed");
+                    }else if transfer_refund == recv_event{
+                        _send_event = String::from("order.refund");
                     }else if wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event {
                         _send_event = String::from("wallet.succeeded");
                     }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
@@ -187,8 +193,14 @@ pub async fn consumer_server()
                         _send_event = String::from("payment.succeeded");
                     }else if withdraw == recv_event{
                         _send_event = String::from("withdraw.failed");
-                    }else if transfer == recv_event || transfer_order == recv_event || transfer_pay == recv_event || transfer_refund == recv_event{
+                    }else if transfer == recv_event{
                         _send_event = String::from("transfer.failed");
+                    }else if transfer_order == recv_event{
+                        _send_event = String::from("order.create");
+                    }else if transfer_pay == recv_event{
+                        _send_event = String::from("order.payed");
+                    }else if transfer_refund == recv_event{
+                        _send_event = String::from("order.refund");
                     }else if  wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event{
                         _send_event = String::from("wallet.failed");
                     }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
@@ -272,6 +284,9 @@ pub async fn consumer_server()
                     }
                 };
                 let created: i64 = create_time.unwrap().timestamp();
+                if _send_event == String::from("order.create") || _send_event == String::from("order.payed") || _send_event == String::from("order.refund") {
+                    object_data = transfer_data(_send_event.clone(),object_data).await;
+                } 
                 let params: WebhookReqwest = WebhookReqwest{
                     id: _object_id.clone(),
                     event_type: String::from("event"),
@@ -347,5 +362,91 @@ pub async fn consumer_server()
                 }
             }   
         };
+    }
+}
+
+
+/*交易数据封装*/
+#[derive(Debug, Serialize)]
+pub struct OederCreate {
+    channel: String,
+    wallet_id: String, // 支付来源钱包
+    amount: u64, // 支付来源钱包
+    openid: Option<String>,  // 微信支付中存在此字段
+    beans: Option<u64>,  // 志愿豆
+    orderid: Option<String>, //志愿者平台传递的订单号
+    order_type: Option<String>, //志愿者平台传递的订单类型
+    order_id: Option<String> // 订单id号
+}
+#[derive(Debug, Serialize)]
+pub struct OederPayed{
+    order_id: Option<String> // 订单id号
+}
+#[derive(Debug, Serialize)]
+pub struct OederRefund{
+    order_id: Option<String>, // 订单id号
+    refund_amount: Option<u64> // 退款金额
+}
+pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_json::Value {
+    if event == String::from("order.create"){
+        let channel: String = result["wallet_id"]["channel"].as_str().unwrap().to_string();
+        let wallet_id: String = result["wallet_id"]["id"].as_str().unwrap().to_string();
+        let amount: u64 = result["amount"].as_u64().unwrap();
+        let openid: Option<String> = match result["wallet_id"]["extra"]["openid"].as_str(){
+            Some(v)=>Some(v.to_string()),
+            None => None
+        };
+        let beans: Option<u64> = match result["wallet_id"]["extra"]["beans"].as_u64(){
+            Some(v)=>Some(v),
+            None => None
+        };
+        let orderid: Option<String> = match result["wallet_id"]["extra"]["orderid"].as_str(){
+            Some(v)=>Some(v.to_string()),
+            None => None
+        };
+        let order_type: Option<String> = match result["wallet_id"]["extra"]["order_type"].as_str(){
+            Some(v)=>Some(v.to_string()),
+            None => None
+        };
+        let order_id: Option<String> = match result["wallet_id"]["extra"]["order_id"].as_str(){
+            Some(v)=>Some(v.to_string()),
+            None => None
+        };
+        let param: OederCreate = OederCreate{
+            channel,
+            wallet_id, // 支付来源钱包
+            amount, // 支付来源钱包
+            openid,  // 微信支付中存在此字段
+            beans,  // 志愿豆
+            orderid, //志愿者平台传递的订单号
+            order_type, //志愿者平台传递的订单类型
+            order_id
+        };
+        return serde_json::to_value(param).unwrap();
+    }else if event == String::from("order.payed"){
+        let order_id: Option<String> = match result["wallet_id"]["extra"]["order_id"].as_str(){
+            Some(v)=>Some(v.to_string()),
+            None => None
+        };
+        let param: OederPayed = OederPayed{
+            order_id
+        };
+        return serde_json::to_value(param).unwrap();
+    }else if event == String::from("order.refund"){
+        let order_id: Option<String> = match result["wallet_id"]["extra"]["order_id"].as_str(){
+            Some(v)=>Some(v.to_string()),
+            None => None
+        };
+        let refund_amount: Option<u64> = match result["wallet_id"]["extra"]["refund_amount"].as_u64(){
+            Some(v)=>Some(v),
+            None => None
+        };
+        let param = OederRefund{
+            order_id, // 订单id号
+            refund_amount // 退款金额
+        };
+        return serde_json::to_value(param).unwrap();
+    }else{
+        return serde_json::from_str("error").unwrap();
     }
 }

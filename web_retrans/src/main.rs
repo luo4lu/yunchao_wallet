@@ -68,13 +68,36 @@ async fn main() {
             }
         };
         //结果反序列
-        let mut wallet_id = object_id;
+        let mut wallet_id: String = object_id.to_string();
         let result_json: serde_json::Value = serde_json::from_str(&result).unwrap();
         let event: String = result_json["event"].as_str().unwrap().to_string(); 
         if !(event == String::from("wallet.failed") || event == String::from("wallet.succeeded")){
             info!("current event = {}",event);
-            wallet_id = result_json["data"]["wallet_id"]["id"].as_str().unwrap();
+            wallet_id = result_json["data"]["wallet_id"]["id"].as_str().unwrap().to_string();
+        }else if event == String::from("order.create") || event == String::from("order.payed") || event == String::from("order.refund") {
+            let pool_t: Pool = config::get_db();
+            let mut conn_mysql_t = pool_t.get_conn().await.unwrap();
+            let id: String = result_json["id"].as_str().unwrap().to_string();
+            let mut table_name = String::new();
+            if event == String::from("order.create") {
+                table_name = String::from("transfer_order");
+            }else if event == String::from("order.payed") {
+                table_name = String::from("transfer_pay");
+            }else if event == String::from("order.refund") {
+                table_name = String::from("transfer_refund");
+            }
+            let sql_t = format!("select wallet_id from {} where id = \'{}\'",table_name,id);
+            let row_t: Vec<Row> = conn_mysql_t.query(sql_t).await.unwrap();
+             //释放资源
+            drop(conn_mysql_t);
+            pool_t.disconnect().await.unwrap();
+            if row_t.is_empty(){
+                warn!("wallet select failed！！");
+                continue;
+            }
+            wallet_id = row_t[0].get(0).unwrap();
         }
+
         info!("Recv data result == {:?}====object_id == {}",result_json, object_id);
         //数据库连接 获取webhook推送地址
         let pool: Pool = config::get_db();
