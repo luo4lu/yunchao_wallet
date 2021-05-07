@@ -375,8 +375,9 @@ pub struct OederCreate {
     amount: u64, // 支付来源钱包
     openid: Option<String>,  // 微信支付中存在此字段
     beans: Option<u64>,  // 志愿豆
-    orderid: Option<String>, //志愿者平台传递的订单号
-    order_type: Option<String>, //志愿者平台传递的订单类型
+    order: Option<String>, //志愿者平台传递的订单号
+    #[serde(rename = "tradeType")]
+    tradet_type: Option<String>, //志愿者平台传递的订单类型
     order_id: Option<String> // 订单id号
 }
 #[derive(Debug, Serialize)]
@@ -386,11 +387,12 @@ pub struct OederPayed{
 #[derive(Debug, Serialize)]
 pub struct OederRefund{
     order_id: Option<String>, // 订单id号
-    refund_amount: Option<u64> // 退款金额
+    refund_amount: Option<u64>, // 退款金额
+    refund_id:Option<String> //退款id
 }
 pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_json::Value {
     if event == String::from("order.create"){
-        let channel: String = result["wallet_id"]["channel"].as_str().unwrap().to_string();
+        let channel: String = String::from("yunchaoplus");
         let wallet_id: String = result["wallet_id"]["id"].as_str().unwrap().to_string();
         let amount: u64 = result["amount"].as_u64().unwrap();
         let openid: Option<String> = match result["extra"]["openid"].as_str(){
@@ -401,11 +403,11 @@ pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_js
             Some(v)=>Some(v),
             None => None
         };
-        let orderid: Option<String> = match result["extra"]["orderId"].as_str(){
+        let order: Option<String> = match result["extra"]["orderId"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let order_type: Option<String> = match result["extra"]["tradeType"].as_str(){
+        let tradet_type: Option<String> = match result["extra"]["tradeType"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
@@ -419,13 +421,13 @@ pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_js
             amount, // 支付来源钱包
             openid,  // 微信支付中存在此字段
             beans,  // 志愿豆
-            orderid, //志愿者平台传递的订单号
-            order_type, //志愿者平台传递的订单类型
+            order, //志愿者平台传递的订单号
+            tradet_type, //志愿者平台传递的订单类型
             order_id
         };
         return serde_json::to_value(param).unwrap();
     }else if event == String::from("order.payed"){
-        let order_id: Option<String> = match result["id"].as_str(){
+        let order_id: Option<String> = match result["transfer_order"]["id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
@@ -434,20 +436,22 @@ pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_js
         };
         return serde_json::to_value(param).unwrap();
     }else if event == String::from("order.refund"){
-        let order_id: Option<String> = match result["id"].as_str(){
+        let order_id: Option<String> = match result["transfer_order"]["id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let refund_amount: Option<u64> = match result["extra"]["refund_amt"].as_str(){
-            Some(v)=>{
-                let str = v.to_string();
-                Some(str.parse::<u64>().unwrap())
-            },
+        let refund_amount: Option<u64> = match result["amount"].as_u64(){
+            Some(v)=>Some(v),
+            None => None
+        };
+        let refund_id: Option<String> = match result["id"].as_str(){
+            Some(v)=>Some(v.to_string()),
             None => None
         };
         let param = OederRefund{
             order_id, // 订单id号
-            refund_amount // 退款金额
+            refund_amount, // 退款金额
+            refund_id
         };
         return serde_json::to_value(param).unwrap();
     }else{
