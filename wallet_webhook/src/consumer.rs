@@ -33,7 +33,7 @@ pub struct WebhookReqwest {
     id: String,
     #[serde(rename = "type")]
     event_type: String,
-    created: i64,
+    create: i64,
     event: String,
     data: serde_json::Value
 }
@@ -283,14 +283,14 @@ pub async fn consumer_server()
                         continue;
                     }
                 };
-                let created: i64 = create_time.unwrap().timestamp();
+                let create: i64 = create_time.unwrap().timestamp();
                 if _send_event == String::from("order.create") || _send_event == String::from("order.payed") || _send_event == String::from("order.refund") {
                     object_data = transfer_data(_send_event.clone(),object_data).await;
                 } 
                 let params: WebhookReqwest = WebhookReqwest{
                     id: _object_id.clone(),
                     event_type: String::from("event"),
-                    created,
+                    create,
                     event: _send_event,
                     data: object_data
                 };
@@ -401,15 +401,15 @@ pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_js
             Some(v)=>Some(v),
             None => None
         };
-        let orderid: Option<String> = match result["extra"]["orderid"].as_str(){
+        let orderid: Option<String> = match result["extra"]["orderId"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let order_type: Option<String> = match result["extra"]["order_type"].as_str(){
+        let order_type: Option<String> = match result["extra"]["tradeType"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let order_id: Option<String> = match result["extra"]["order_id"].as_str(){
+        let order_id: Option<String> = match result["id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
@@ -425,7 +425,7 @@ pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_js
         };
         return serde_json::to_value(param).unwrap();
     }else if event == String::from("order.payed"){
-        let order_id: Option<String> = match result["extra"]["order_id"].as_str(){
+        let order_id: Option<String> = match result["id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
@@ -434,12 +434,15 @@ pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_js
         };
         return serde_json::to_value(param).unwrap();
     }else if event == String::from("order.refund"){
-        let order_id: Option<String> = match result["extra"]["order_id"].as_str(){
+        let order_id: Option<String> = match result["id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let refund_amount: Option<u64> = match result["extra"]["refund_amount"].as_u64(){
-            Some(v)=>Some(v),
+        let refund_amount: Option<u64> = match result["extra"]["refund_amt"].as_str(){
+            Some(v)=>{
+                let str = v.to_string();
+                Some(str.parse::<u64>().unwrap())
+            },
             None => None
         };
         let param = OederRefund{
