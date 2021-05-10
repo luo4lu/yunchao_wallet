@@ -69,6 +69,7 @@ pub async fn consumer_server()
     let wallet_create = String::from("wallet.create");
     let wallet_rst_pwd = String::from("wallet.rst_pwd");
     let wallet_bk = String::from("wallet.bk_query");
+    let wallet_remove = String::from("wallet.remove");
     let settle_create = String::from("settle.create");
     let settle_confirm = String::from("settle.confirm");
     let settle_remove = String::from("settle.remove");
@@ -177,7 +178,7 @@ pub async fn consumer_server()
                         _send_event = String::from("order.payed");
                     }else if transfer_refund == recv_event{
                         _send_event = String::from("order.refund");
-                    }else if wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event {
+                    }else if wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event || wallet_remove == recv_event {
                         _send_event = String::from("wallet.succeeded");
                     }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
                         _send_event = String::from("settle.succeeded");
@@ -201,7 +202,7 @@ pub async fn consumer_server()
                         _send_event = String::from("order.payed");
                     }else if transfer_refund == recv_event{
                         _send_event = String::from("order.refund");
-                    }else if  wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event{
+                    }else if  wallet_create ==recv_event || wallet_rst_pwd==recv_event || wallet_bk == recv_event || wallet_remove == recv_event{
                         _send_event = String::from("wallet.failed");
                     }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
                         _send_event = String::from("settle.failed");

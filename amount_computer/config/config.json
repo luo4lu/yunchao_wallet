@@ -1,0 +1,45 @@
+{
+    "dbaddr":"124.70.69.124",
+    "port":"23651",
+    "dbname":"root",
+    "dbbase":"wallet-interface",
+    "dbpass":"ef69c7597dedcf58+",
+    "static_day": 1,
+    "applevel":{
+        "low":["60702b5021c1859fa3b9b0f1","607016c19a4f1befb95eec0c","60507b1c9b79349f21af3b23","605b024d557a0856eb2ae8e4","60644f7bb064d8c1fb76042b","6087b01bad5e17b284b2abc5","6087b764f7c35f85436b2ccd","6087dffadf81877562f70864"],
+        "middle":["60811c59b428215d6f0f8a5a","60488bb552a660fb29cef736","604976476409dbaf6c04916d","6062c15a972cdf574c15a915","6080e7d6857addc768c25212","608a27c5ae97ea04a1a80d42"],
+        "high":[]
+    },
+    "transfer":{
+        "low":{
+            "percent":1,
+            "min":100,
+            "max":30000
+        },
+        "middle":{
+            "percent":1,
+            "min":100,
+            "max":50000
+        },
+        "high":{
+            "percent":1,
+            "min":100,
+            "max":30000
+        }
+    },
+    "withdraw":{
+        "low":{
+            "percent":2
+        },
+        "middle":{
+            "limit_value":100000000,
+            "limit_min":2,
+            "limit_max":1
+        },
+        "high":{
+            "limit_value":100000000,
+            "limit_min":2,
+            "limit_max":1
+        }
+    }
+}
