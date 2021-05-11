@@ -45,10 +45,10 @@ pub async fn get_day_amount() {
         high_vec.push(v_str);
     }
     //以UTC时间为标准获取24的交易额度
-    let time_day:i64 = value_name["static_day"].as_i64().unwrap();
+    let time_hour:i64 = value_name["static_hour"].as_i64().unwrap();
     let utc: DateTime<Utc> = Utc::now();
     let naive_utc: NaiveDateTime = utc.naive_utc();
-    let end_time: NaiveDateTime = naive_utc.checked_sub_signed(Duration::days(time_day)).unwrap();
+    let end_time: NaiveDateTime = naive_utc.checked_sub_signed(Duration::hours(time_hour)).unwrap();
     info!("Statistical time = {}--{}",end_time,naive_utc);
     //先查询当前24小时范围内是否有数据
     let trans_sql = format!("select amount, wallet_id,status from transfer where created > \'{}\' and created < \'{}\'",end_time,naive_utc);
