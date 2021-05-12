@@ -111,6 +111,10 @@ use std::io::BufReader;
       warn!("enterprise info already exist!!");
       return HttpResponse::Ok().json(ResponseBody::<()>::enterprise_registed());
     }
+    let file = File::open("./config/config_info.json").unwrap();
+    let reader = BufReader::new(file);
+    let value: serde_json::Value = serde_json::from_reader(reader).unwrap();
+    let verify: bool = value["verify"].as_bool().unwrap();
     let local: DateTime<Local> = Local::now();
     let context = Context::new(42);
     let ts = Timestamp::from_unix(&context, local.second() as u64, local.nanosecond());
@@ -122,49 +126,48 @@ use std::io::BufReader;
     ).expect("failed to generate UUID");
     let uuid = uuid.to_string();
     //企业信息认证
-    let enterprise_status = enterprise_cartification(&req.person_info.legal_name, &req.credit_code).await;
-    if enterprise_status != 0{
-      warn!("enterprise cartification failed,error code = {}",enterprise_status);
-	  //释放连接
-	  drop(conn);
-	  pool.disconnect().await.unwrap();
-      return HttpResponse::Ok().json(ResponseBody::<()>::enterprise_info_error());
-    }
-    //个人信息认证
-    let personal_status = personal_cartification(&req.person_info.legal_name, &req.person_info.legal_phone, &req.person_info.legal_voucher_num).await;
-    if personal_status != 1{
-      warn!("personal info cartification failed,error code = {}",personal_status);
-	  //释放连接
-	  drop(conn);
-	  pool.disconnect().await.unwrap();
-      return HttpResponse::Ok().json(ResponseBody::<()>::personal_info_error());
-    }
-    //如果代理人填写，验证代理人身份
-    if req.person_info.identity == String::from("agency"){
-       if req.person_info.agency_name.is_some() && req.person_info.agency_phone.is_some() 
-       && req.person_info.agency_voucher_num.is_some(){
-         let agency_name: &String = &req.person_info.agency_name.clone().unwrap();
-         let agency_phone: &String = &req.person_info.agency_phone.clone().unwrap();
-         let agency_voucher_num: &String = &req.person_info.agency_voucher_num.clone().unwrap();
-         let agency_status = personal_cartification(agency_name, agency_phone, agency_voucher_num).await;
-         if agency_status != 1{
-            warn!("personal info cartification failed,error code = {}",personal_status);
-			//释放连接
-			drop(conn);
-			pool.disconnect().await.unwrap();
+    if verify {
+      let enterprise_status = enterprise_cartification(&req.person_info.legal_name, &req.credit_code).await;
+      if enterprise_status != 0{
+         warn!("enterprise cartification failed,error code = {}",enterprise_status);
+      //释放连接
+         drop(conn);
+         pool.disconnect().await.unwrap();
+         return HttpResponse::Ok().json(ResponseBody::<()>::enterprise_info_error());
+      }
+      //个人信息认证
+      let personal_status = personal_cartification(&req.person_info.legal_name, &req.person_info.legal_phone, &req.person_info.legal_voucher_num).await;
+      if personal_status != 1{
+         warn!("personal info cartification failed,error code = {}",personal_status);
+      //释放连接
+      drop(conn);
+      pool.disconnect().await.unwrap();
+         return HttpResponse::Ok().json(ResponseBody::<()>::personal_info_error());
+      }
+      //如果代理人填写，验证代理人身份
+      if req.person_info.identity == String::from("agency"){
+         if req.person_info.agency_name.is_some() && req.person_info.agency_phone.is_some() 
+         && req.person_info.agency_voucher_num.is_some(){
+            let agency_name: &String = &req.person_info.agency_name.clone().unwrap();
+            let agency_phone: &String = &req.person_info.agency_phone.clone().unwrap();
+            let agency_voucher_num: &String = &req.person_info.agency_voucher_num.clone().unwrap();
+            let agency_status = personal_cartification(agency_name, agency_phone, agency_voucher_num).await;
+            if agency_status != 1{
+               warn!("personal info cartification failed,error code = {}",personal_status);
+            //释放连接
+            drop(conn);
+            pool.disconnect().await.unwrap();
+               return HttpResponse::Ok().json(ResponseBody::<()>::agency_info_error());
+            }
+         }else{
+            warn!("agency personal request info incomplete!");
+         //释放连接
+         drop(conn);
+         pool.disconnect().await.unwrap();
             return HttpResponse::Ok().json(ResponseBody::<()>::agency_info_error());
          }
-       }else{
-          warn!("agency personal request info incomplete!");
-		  //释放连接
-		  drop(conn);
-		  pool.disconnect().await.unwrap();
-          return HttpResponse::Ok().json(ResponseBody::<()>::agency_info_error());
-       }
-    }
-    let file = File::open("./config/config_info.json").unwrap();
-    let reader = BufReader::new(file);
-    let value: serde_json::Value = serde_json::from_reader(reader).unwrap();
+      }
+   }
     let email_server: String = value["email_server"].as_str().unwrap().to_string();
     let server_addr = "http://".to_string() + &email_server + "/user/consult";
     let params: BusinessRequest = BusinessRequest{

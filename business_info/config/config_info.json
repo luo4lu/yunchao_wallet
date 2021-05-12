@@ -4,5 +4,6 @@
     "dbbase":"check_test",
     "dbpass":"mysql",
     "server_addr":"0.0.0.0:9010",
-    "email_server":"0.0.0.0:5000"
+    "email_server":"0.0.0.0:5000",
+    "verify": false
 }
