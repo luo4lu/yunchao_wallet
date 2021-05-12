@@ -24,6 +24,5 @@ RUN apt-get install cmake openssl -y
 
 COPY --from=builder /workspace/target/release/amount_computer .
 
-EXPOSE 5000
 
 CMD [ "./amount_computer" ]
