@@ -19,7 +19,6 @@ use std::io::BufReader;
     bus_type: String, // 单位类型
     bus_name: String, //企业名称
     credit_code: String, //社会信用代码
-    business: String, //营业执照
     validity_begin: Option<i64>,//有效期开始时间
     validity_end: i64,//有效期开始时间 0表示长期
     reg_addr: String, //企业注册地址
@@ -32,7 +31,6 @@ use std::io::BufReader;
     account_note1: Option<String>,//账户备注1
     account_note2: Option<String>,//账户备注1
     account_note3: Option<String>,//账户备注1
-    attached: Option<String>,//附件,base64格式字符串。
     bus_connect: String, //企业关系(base、sub、branch、part、shop)
 	person_info: PersonInfo, //填写人信息
     bank_info: BankInfo //公司银行账户信息
@@ -234,29 +232,29 @@ use std::io::BufReader;
 	}
 	
 	let payments = vec![Payment{id:uuid, bus_type: req.bus_type.clone(), bus_name: req.bus_name.clone(),
-		credit_code: req.credit_code.clone(), business: req.business.clone(), validity_begin: req.validity_begin, 
+		credit_code: req.credit_code.clone(), validity_begin: req.validity_begin, 
 		validity_end: req.validity_end, reg_addr: req.reg_addr.clone(), bus_addr: req.bus_addr.clone(), bus_info: req.bus_info.clone(), 
 		reg_capital: req.reg_capital, linkman: req.linkman.clone(), telephone: req.telephone.clone(), link_email: req.link_email.clone(),
 		account_note1: req.account_note1.clone(), account_note2: req.account_note2.clone(), account_note3: req.account_note3.clone(),
-		attached: req.attached.clone(), bus_connect: req.bus_connect.clone(), person_info: req.person_info.clone(), bank_info: req.bank_info.clone()}];
+		bus_connect: req.bus_connect.clone(), person_info: req.person_info.clone(), bank_info: req.bank_info.clone()}];
     let params_sql = payments.clone().into_iter().map(|payment| {
         params! {
             "id" => payment.id,"bus_type" => payment.bus_type,
-			"bus_name" => payment.bus_name, "credit_code" => payment.credit_code, "business" => payment.business,
+			"bus_name" => payment.bus_name, "credit_code" => payment.credit_code,
 			"validity_begin" => payment.validity_begin, "validity_end" => payment.validity_end, "reg_addr"=>payment.reg_addr,
 			"bus_addr" => payment.bus_addr, "bus_info" => payment.bus_info, "reg_capital" => payment.reg_capital,
 			"linkman" => payment.linkman, "telephone" => payment.telephone, "link_email" => payment.link_email,
 			"account_note1" => payment.account_note1, "account_note2" => payment.account_note2, "account_note3" => payment.account_note3,
-			"attached" => payment.attached, "bus_connect" => payment.bus_connect, 
+			"bus_connect" => payment.bus_connect, 
 			"person_info" => serde_json::to_value(payment.person_info).unwrap(), "bank_info" => serde_json::to_value(payment.bank_info).unwrap()
         }
     });
-	match conn.exec_batch(r"INSERT INTO business(id, bus_type, bus_name, credit_code, business, validity_begin, 
+	match conn.exec_batch(r"INSERT INTO business(id, bus_type, bus_name, credit_code, validity_begin, 
 		validity_end, reg_addr, bus_addr, bus_info, reg_capital, linkman, telephone, link_email, account_note1,account_note2,account_note3, 
-		attached, bus_connect, person_info, bank_info)
-	VALUES(:id, :bus_type, :bus_name, :credit_code, :business, :validity_begin, :validity_end, :reg_addr, :bus_addr, 
+		bus_connect, person_info, bank_info)
+	VALUES(:id, :bus_type, :bus_name, :credit_code, :validity_begin, :validity_end, :reg_addr, :bus_addr, 
 		:bus_info, :reg_capital, :linkman, :telephone, :link_email, :account_note1, :account_note2, :account_note3, 
-		:attached, :bus_connect, :person_info, :bank_info)",params_sql).await{
+		:bus_connect, :person_info, :bank_info)",params_sql).await{
 	   Ok(_) =>{},
 	   Err(error) => {
 		   warn!("1.insert business data failed for business of:{:?}",error);
