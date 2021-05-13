@@ -61,4 +61,11 @@ impl<T> ResponseBody<T> {
             data: None,
         }
     }
+    pub fn agency_info_miss() -> Self {
+        ResponseBody {
+            code: 90006,
+            message: format!("代理人身份信息不完整"),
+            data: None,
+        }
+    }
 }

@@ -68,9 +68,9 @@ def write_excel(excel_name, dic):
     identity = person_json.get("identity")
     worksheet.write(17, 0, "填写人")
     if identity == "agency":
-        worksheet.write(17, 1, '法定代表人')
-    else:
         worksheet.write(17, 1, '代理人')
+    else:
+        worksheet.write(17, 1, '法定代表人')
     legal_name = person_json.get("legal_name")
     worksheet.write(18, 0, '法定代表人姓名')
     worksheet.write(18, 1, legal_name)
@@ -98,51 +98,66 @@ def write_excel(excel_name, dic):
     control_preson = person_json.get("control_preson")
     worksheet.write(23, 0, '实际控制人身份')
     worksheet.write(23, 1, control_preson)
-    agency_name = person_json.get("agency_name")
-    worksheet.write(24, 0, '代理人姓名')
-    worksheet.write(24, 1, agency_name)
-    agency_voucher_type = person_json.get("agency_voucher_type")
-    worksheet.write(25, 0, '证件类型')
-    worksheet.write(25, 1, agency_voucher_type)
-    agency_voucher_num = person_json.get("agency_voucher_num")
-    worksheet.write(26, 0, '证件号码')
-    worksheet.write(26, 1, agency_voucher_num)
-    agency_validity_begin = person_json.get("agency_validity_begin")
-    agency_validity_end = person_json.get("agency_validity_end")
-    
-    if agency_validity_begin is not None and agency_validity_end is not None and agency_validity_end > 0:
-        date_vali5 = datetime.datetime.fromtimestamp(agency_validity_begin)
-        time5 = date_vali5.strftime("%Y--%m--%d %H:%M:%S")
-        worksheet.write(27, 0, '证件有效期')
-        worksheet.write(27, 1, time5)
-        date_vali6 = datetime.datetime.fromtimestamp(agency_validity_end)
-        time6 = date_vali6.strftime("%Y--%m--%d %H:%M:%S")
-        worksheet.write(27, 2, time6)
-    else:
-        worksheet.write(27, 2, '长期')
-    agency_phone = person_json.get("agency_phone")
-    worksheet.write(28, 0, '代理人手机')
-    worksheet.write(28, 1, agency_phone)
+
+    num = 24
+    if identity == "agency":
+        num +=1
+        agency_name = person_json.get("agency_name")
+        worksheet.write(num, 0, '代理人姓名')
+        worksheet.write(num, 1, agency_name)
+        agency_voucher_type = person_json.get("agency_voucher_type")
+        num +=1
+        worksheet.write(num, 0, '证件类型')
+        worksheet.write(num, 1, agency_voucher_type)
+        agency_voucher_num = person_json.get("agency_voucher_num")
+        num +=1
+        worksheet.write(num, 0, '证件号码')
+        worksheet.write(num, 1, agency_voucher_num)
+        agency_validity_begin = person_json.get("agency_validity_begin")
+        agency_validity_end = person_json.get("agency_validity_end")
+        
+        if agency_validity_begin is not None and agency_validity_end is not None and agency_validity_end > 0:
+            date_vali5 = datetime.datetime.fromtimestamp(agency_validity_begin)
+            time5 = date_vali5.strftime("%Y--%m--%d %H:%M:%S")
+            num +=1
+            worksheet.write(num, 0, '证件有效期')
+            worksheet.write(num, 1, time5)
+            date_vali6 = datetime.datetime.fromtimestamp(agency_validity_end)
+            time6 = date_vali6.strftime("%Y--%m--%d %H:%M:%S")
+            worksheet.write(num, 2, time6)
+        elif agency_validity_end is None:
+            num +=1
+            worksheet.write(num, 2, '长期')
+        agency_phone = person_json.get("agency_phone")
+        num +=1
+        worksheet.write(num, 0, '代理人手机')
+        worksheet.write(num, 1, agency_phone)
 
     bank_json = dic.get("bank_info")
     account_type = bank_json.get("account_type")
-    worksheet.write(30, 0, '银行账户类型')
-    worksheet.write(30, 1, account_type)
+    num +=1
+    worksheet.write(num, 0, '银行账户类型')
+    worksheet.write(num, 1, account_type)
     account_name = bank_json.get("account_name")
-    worksheet.write(31, 0, '银行账户名称')
-    worksheet.write(31, 1, account_name)
+    num +=1
+    worksheet.write(num, 0, '银行账户名称')
+    worksheet.write(num, 1, account_name)
     account_number = bank_json.get("account_number")
-    worksheet.write(32, 0, '银行账号')
-    worksheet.write(32, 1, account_number)
+    num +=1
+    worksheet.write(num, 0, '银行账号')
+    worksheet.write(num, 1, account_number)
     deposit_bank = bank_json.get("deposit_bank")
-    worksheet.write(33, 0, '开户银行')
-    worksheet.write(33, 1, deposit_bank)
+    num +=1
+    worksheet.write(num, 0, '开户银行')
+    worksheet.write(num, 1, deposit_bank)
     area = bank_json.get("area")
-    worksheet.write(34, 0, '开户行所在地')
-    worksheet.write(34, 1, area)
+    num +=1
+    worksheet.write(num, 0, '开户行所在地')
+    worksheet.write(num, 1, area)
     sub_branch = bank_json.get("sub_branch")
-    worksheet.write(35, 0, '开户支行名称')
-    worksheet.write(35, 1, sub_branch)
+    num +=1
+    worksheet.write(num, 0, '开户支行名称')
+    worksheet.write(num, 1, sub_branch)
     #保存
     file_name = excel_name + '.xls'
     workbook.save(file_name)
