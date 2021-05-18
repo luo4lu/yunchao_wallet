@@ -55,9 +55,9 @@ def email_smtp(path_name, bus_name):
 
 #字符串解码存储
 def image_save(addr, ms):
-    imagedata = base64.b64decode(ms)
+    #imagedata = base64.b64decode(ms)
     file = open(addr, "wb")
-    file.write(imagedata)
+    file.write(ms.content)
     file.close()
 #文件压缩
 def zip_ya(startdir, file_news):
@@ -85,33 +85,33 @@ def email_server():
         business = dic.get("business") #营业执照找片
         if business is not None:
             image_name = path+ '/营业执照.jpg'
-            image_save(image_name, business) 
+            image_save(image_name, requests.get(business)) 
         attached = dic.get("attached") #附件
         if attached is not None:
             att_name = path+'/附件.jpg'
-            image_save(att_name, attached)
+            image_save(att_name, requests.get(attached))
         legal_photo_p = person_json.get("legal_photo_p")#法人身份证正面
         if legal_photo_p is not None:
             l_photo_p = path+'/法人身份证正面.jpg'
-            image_save(l_photo_p, legal_photo_p)
+            image_save(l_photo_p, requests.get(legal_photo_p))
         legal_photo_r = person_json.get("legal_photo_r")#法人身份证反面
         if legal_photo_r is not None:
             l_photo_r = path+'/法人身份证反面.jpg'
-            image_save(l_photo_r, legal_photo_r)
+            image_save(l_photo_r, requests.get(legal_photo_r))
         identity = person_json.get("identity") #填写人身份
         if identity == 'agency':
             agency_photo_p = person_json.get("agency_photo_p")
             if agency_photo_p is not None:
                 a_photo_p = path+'/代理人身份证正面.jpg' #代理人身份证正面
-                image_save(a_photo_p,agency_photo_p)
+                image_save(a_photo_p,requests.get(agency_photo_p))
             agency_photo_r = person_json.get("agency_photo_r") #代理人身份证反面
             if agency_photo_r is not None:
                 a_photo_r = path+'/代理人身份证反面.jpg' 
-                image_save(a_photo_r, agency_photo_r)
+                image_save(a_photo_r, requests.get(agency_photo_r))
             authorization = person_json.get("authorization") #代理委托书
             if authorization is not None:
                 auth = path+'/委托书.jpg'
-                image_save(auth, authorization)
+                image_save(auth, requests.get(authorization))
         #数据写入excel
         excel_name = path + '/'+bus_name
         write_excel(excel_name, dic)
