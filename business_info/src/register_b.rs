@@ -67,7 +67,7 @@ use std::io::BufReader;
     legal_voucher_type: String, //证件类型
     legal_voucher_num: String, //证件号码
     legal_photo_p: String, //身份证正面（base64字符串）
-    legal_photo_r: String, //份证反面（base64字符串）
+    legal_photo_r: Option<String>, //份证反面（base64字符串）
     legal_validity_begin: Option<i64>,
     legal_validity_end: i64, //长期为0
     legal_phone: String, //法人手机号码
