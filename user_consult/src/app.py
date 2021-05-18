@@ -131,7 +131,7 @@ def email_server():
     response = make_response(json.dumps(resp_dict))
     return response
 
-@app.route('/change/passwold', methods=['POST'])
+@app.route('/change/password', methods=['POST'])
 def change_pass():
     if request.method == 'POST':
         recv_data = request.data.decode('utf-8')
