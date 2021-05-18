@@ -1,0 +1,8 @@
+{
+    "dbaddr":"124.70.69.124",
+    "port":"23651",
+    "dbname":"root",
+    "dbbase":"wallet-interface",
+    "dbpass":"ef69c7597dedcf58+",
+    "notify_addr":"0.0.0.0:9013"
+}

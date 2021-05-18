@@ -26,10 +26,9 @@ def email_smtp(path_name, bus_name):
         receivers = json_data.get("receivers")
         global msg_list
         msg_list = MIMEMultipart()
-        msg_list['From'] = Header("企业开户",'utf-8')
+        msg_list['From'] = Header("企业信息审核",'utf-8')
         msg_list['To'] = Header("注册信息",'utf-8')
-        subject = bus_name + '注册信息'
-        msg_list['subject'] = Header(subject,'utf-8')
+        msg_list['subject'] = Header(bus_name,'utf-8')
         
         with open(path_name,'rb') as f:
             file_name = bus_name + '.zip'
@@ -119,7 +118,7 @@ def email_server():
         #文件压缩
         file_news = path + '.zip'
         zip_ya(path, file_news)
-        code = email_smtp(file_news, bus_name)
+        code = email_smtp(file_news, bus_name+'注册信息')
     resp_dict = {}
     resp_dict['code'] = 0
     resp_dict['message'] = 'success'
@@ -131,6 +130,38 @@ def email_server():
     shutil.rmtree(path)
     response = make_response(json.dumps(resp_dict))
     return response
+
+@app.route('/change/passwold', methods=['POST'])
+def change_pass():
+    if request.method == 'POST':
+        recv_data = request.data.decode('utf-8')
+        dic = json.loads(recv_data)
+        wallet_id = dic.get("wallet_id")
+        authen_file = dic.get("authen_file")
+        path='./'+wallet_id
+        folder = os.path.exists(path)
+        if not folder:
+            os.makedirs(path)
+        if authen_file is not None:
+            image_name = path+'/认证文件.jpg'
+            image_save(image_name, authen_file)
+         #文件压缩
+        file_news = path + '.zip'
+        zip_ya(path, file_news)
+        code = email_smtp(file_news, wallet_id+'修改密码')
+    resp_dict = {}
+    resp_dict['code'] = 0
+    resp_dict['message'] = 'success'
+    if code != 0:
+        resp_dict['code'] = 554
+        resp_dict['message'] = '发送失败'
+    resp_dict['data'] = {}
+    resp_dict['data']['wallet_id'] = wallet_id
+    os.remove(file_news)
+    shutil.rmtree(path)
+    response = make_response(json.dumps(resp_dict))
+    return response
+
 
 if __name__=="__main__":
     app.run("0.0.0.0",5000)
