@@ -395,19 +395,19 @@ pub async fn transfer_data(event: String, result: serde_json::Value, recv_event:
         }
         let wallet_id: String = result["wallet_id"]["id"].as_str().unwrap().to_string();
         let amount: u64 = result["amount"].as_u64().unwrap();
-        let openid: Option<String> = match result["extra"]["openid"].as_str(){
+        let openid: Option<String> = match result["extra"]["extra"]["sub_open_id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let beans: Option<u64> = match result["extra"]["beans"].as_u64(){
+        let beans: Option<u64> = match result["extra"]["ai_zhi_yuan_extra"]["beans"].as_u64(){
             Some(v)=>Some(v),
             None => None
         };
-        let order: Option<String> = match result["extra"]["orderId"].as_str(){
+        let order: Option<String> = match result["extra"]["ai_zhi_yuan_extra"]["orderId"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
-        let tradet_type: Option<String> = match result["extra"]["tradeType"].as_str(){
+        let tradet_type: Option<String> = match result["extra"]["ai_zhi_yuan_extra"]["tradeType"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
