@@ -201,11 +201,11 @@ use std::io::BufReader;
       bank_info: req.bank_info.clone() //公司银行账户信息
     };
     let http_client = reqwest::Client::new();
-    let http_res = match http_client
-         .post(&server_addr)
+    //let http_res = match 
+    http_client.post(&server_addr)
          .json(&params)
-         .send()
-         .await{
+         .send();
+         /*.await{
             Ok(v) => v,
             Err(error)=>{
                warn!("reqwest email server failed:{}",error.to_string());
@@ -214,9 +214,9 @@ use std::io::BufReader;
 				pool.disconnect().await.unwrap();
                return HttpResponse::Ok().json(ResponseBody::<String>::return_unwrap_error(error.to_string()));
             }
-         };
-   	let code_status = http_res.status().as_u16();
-	if code_status != 200 {
+         };*/
+   //	let code_status = http_res.status().as_u16();
+	/*if code_status != 200 {
 		warn!("user data process and send eamil failed");
 		//释放连接
 		drop(conn);
@@ -240,7 +240,7 @@ use std::io::BufReader;
 		drop(conn);
 		pool.disconnect().await.unwrap();
 		return HttpResponse::Ok().json(ResponseBody::<()>::user_data_error());
-	}
+	}*/
 	
 	let payments = vec![Payment{id:uuid, bus_type: req.bus_type.clone(), bus_name: req.bus_name.clone(),
 		credit_code: req.credit_code.clone(), validity_begin: req.validity_begin, 
