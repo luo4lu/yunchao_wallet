@@ -170,7 +170,7 @@ use std::io::BufReader;
    }
    if req.person_info.identity == String::from("agency"){
       if !req.person_info.agency_name.is_some() || !req.person_info.agency_phone.is_some() || !req.person_info.agency_voucher_num.is_some()
-      || !req.person_info.agency_voucher_type.is_some() || !req.person_info.agency_photo_p.is_some() || !req.person_info.agency_photo_r.is_some()
+      || !req.person_info.agency_voucher_type.is_some() || !req.person_info.agency_photo_p.is_some()
       || !req.person_info.agency_validity_end.is_some() || !req.person_info.authorization.is_some(){
          warn!("agency info missing,please input agency infomation");
          return HttpResponse::Ok().json(ResponseBody::<()>::agency_info_miss());
