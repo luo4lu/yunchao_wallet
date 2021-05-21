@@ -166,13 +166,11 @@ pub async fn consumer_server()
                 if 0 == code {
                     if recharge == recv_event{
                         _send_event = String::from("charge.succeeded");
-                    }else if payment_create == recv_event{
-                        _send_event = String::from("payment.succeeded");
                     }else if withdraw == recv_event{
                         _send_event = String::from("withdraw.succeeded");
                     }else if transfer == recv_event{
                         _send_event = String::from("transfer.succeeded");
-                    }else if transfer_order == recv_event{
+                    }else if transfer_order == recv_event || payment_create == recv_event{
                         _send_event = String::from("order.create");
                     }else if transfer_pay == recv_event{
                         _send_event = String::from("order.payed");
