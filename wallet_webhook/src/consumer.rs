@@ -188,15 +188,13 @@ pub async fn consumer_server()
                     //系统服务没有正确响应状态，无需发送到商户服务
                     if recharge == recv_event{
                         _send_event = String::from("charge.failed");
-                    }else if payment_create == recv_event{
-                        _send_event = String::from("payment.succeeded");
                     }else if withdraw == recv_event{
                         _send_event = String::from("withdraw.failed");
                     }else if transfer == recv_event{
                         _send_event = String::from("transfer.failed");
                     }else if transfer_order == recv_event{
                         _send_event = String::from("order.create");
-                    }else if transfer_pay == recv_event{
+                    }else if transfer_pay == recv_event || payment_create == recv_event{
                         _send_event = String::from("order.payed");
                     }else if transfer_refund == recv_event{
                         _send_event = String::from("order.refund");
@@ -284,7 +282,7 @@ pub async fn consumer_server()
                 };
                 let create: i64 = create_time.unwrap().timestamp();
                 if _send_event == String::from("order.create") || _send_event == String::from("order.payed") || _send_event == String::from("order.refund") {
-                    object_data = transfer_data(_send_event.clone(),object_data).await;
+                    object_data = transfer_data(_send_event.clone(),object_data,recv_event).await;
                 } 
                 let params: WebhookReqwest = WebhookReqwest{
                     id: _object_id.clone(),
@@ -389,9 +387,12 @@ pub struct OederRefund{
     refund_amount: Option<u64>, // 退款金额
     refund_id:Option<String> //退款id
 }
-pub async fn transfer_data(event: String, result: serde_json::Value) -> serde_json::Value {
+pub async fn transfer_data(event: String, result: serde_json::Value, recv_event: String) -> serde_json::Value {
     if event == String::from("order.create"){
-        let channel: String = String::from("yunchaoplus");
+        let mut channel: String = String::from("yunchaoplus");
+        if recv_event == String::from("payment.create") {
+            channel = String::from("wechat");
+        }
         let wallet_id: String = result["wallet_id"]["id"].as_str().unwrap().to_string();
         let amount: u64 = result["amount"].as_u64().unwrap();
         let openid: Option<String> = match result["extra"]["openid"].as_str(){
