@@ -2,6 +2,7 @@ import smtplib
 import os,base64
 import xlwt
 import shutil
+import time
 from write_data import write_excel 
 from email import encoders
 from email.mime.base import MIMEBase #附件
@@ -82,6 +83,7 @@ def email_server():
         folder = os.path.exists(path)
         if not folder:
             os.makedirs(path)
+        print(time.strftime("First = %Y-%m-%d-%H_%M_%S", time.localtime()))
         business = dic.get("business") #营业执照找片
         if business is not None:
             image_name = path+ '/营业执照.jpg'
@@ -112,6 +114,7 @@ def email_server():
             if authorization is not None:
                 auth = path+'/委托书.jpg'
                 image_save(auth, requests.get(authorization))
+        print(time.strftime("second = %Y-%m-%d-%H_%M_%S", time.localtime()))
         #数据写入excel
         excel_name = path + '/'+bus_name
         write_excel(excel_name, dic)
