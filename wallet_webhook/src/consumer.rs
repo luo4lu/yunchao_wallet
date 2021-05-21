@@ -395,7 +395,7 @@ pub async fn transfer_data(event: String, result: serde_json::Value, recv_event:
         }
         let wallet_id: String = result["wallet_id"]["id"].as_str().unwrap().to_string();
         let amount: u64 = result["amount"].as_u64().unwrap();
-        let openid: Option<String> = match result["extra"]["extra"]["sub_open_id"].as_str(){
+        let openid: Option<String> = match result["extra"]["sub_open_id"].as_str(){
             Some(v)=>Some(v.to_string()),
             None => None
         };
