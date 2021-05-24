@@ -115,23 +115,22 @@ def write_excel(excel_name, dic):
         worksheet.write(num, 1, agency_voucher_num)
         agency_validity_begin = person_json.get("agency_validity_begin")
         agency_validity_end = person_json.get("agency_validity_end")
-        
-        if agency_validity_begin is not None and agency_validity_end is not None and agency_validity_end > 0:
-            date_vali5 = datetime.datetime.fromtimestamp(agency_validity_begin)
-            time5 = date_vali5.strftime("%Y--%m--%d %H:%M:%S")
-            num +=1
-            worksheet.write(num, 0, '证件有效期')
-            worksheet.write(num, 1, time5)
+        num +=1
+        date_vali5 = datetime.datetime.fromtimestamp(agency_validity_begin)
+        worksheet.write(num, 0, '证件有效期')
+        time5 = date_vali5.strftime("%Y--%m--%d %H:%M:%S")
+        worksheet.write(num, 1, time5)
+        if agency_validity_end > 0:
             date_vali6 = datetime.datetime.fromtimestamp(agency_validity_end)
             time6 = date_vali6.strftime("%Y--%m--%d %H:%M:%S")
             worksheet.write(num, 2, time6)
-        elif agency_validity_end is None:
-            num +=1
+        else:
             worksheet.write(num, 2, '长期')
         agency_phone = person_json.get("agency_phone")
         num +=1
         worksheet.write(num, 0, '代理人手机')
         worksheet.write(num, 1, agency_phone)
+        num +=1
 
     bank_json = dic.get("bank_info")
     account_type = bank_json.get("account_type")
