@@ -20,11 +20,12 @@ def write_excel(excel_name, dic):
     worksheet.write(3,1,credit_code)
     validity_begin = dic.get("validity_begin")
     validity_end = dic.get("validity_end")
-    date_vali1 = datetime.datetime.fromtimestamp(validity_begin)
-    time1 = date_vali1.strftime("%Y--%m--%d %H:%M:%S")
     worksheet.write(4, 0, '营业执照有效期')
-    worksheet.write(4, 1, time1)
-    if validity_end > 0 :
+    if validity_begin is not None:
+        date_vali1 = datetime.datetime.fromtimestamp(validity_begin)
+        time1 = date_vali1.strftime("%Y--%m--%d %H:%M:%S")
+        worksheet.write(4, 1, time1)
+    if validity_end is not None and validity_end > 0 :
         date_vali2 = datetime.datetime.fromtimestamp(validity_end)
         time2 = date_vali2.strftime("%Y--%m--%d %H:%M:%S")
         worksheet.write(4, 2, time2)
@@ -82,11 +83,12 @@ def write_excel(excel_name, dic):
     worksheet.write(20, 1, legal_voucher_num)
     legal_validity_begin = person_json.get("legal_validity_begin")
     legal_validity_end = person_json.get("legal_validity_end")
-    date_vali3 = datetime.datetime.fromtimestamp(legal_validity_begin)
-    time3 = date_vali3.strftime("%Y--%m--%d %H:%M:%S")
     worksheet.write(21, 0, '证件有效期')
-    worksheet.write(21, 1, time3)
-    if legal_validity_end > 0:
+    if legal_validity_begin is not None:
+        date_vali3 = datetime.datetime.fromtimestamp(legal_validity_begin)
+        time3 = date_vali3.strftime("%Y--%m--%d %H:%M:%S")
+        worksheet.write(21, 1, time3)
+    if legal_validity_begin is not None and legal_validity_end > 0:
         date_vali4 = datetime.datetime.fromtimestamp(legal_validity_end)
         time4 = date_vali4.strftime("%Y--%m--%d %H:%M:%S")
         worksheet.write(21, 2, time4)
@@ -118,9 +120,10 @@ def write_excel(excel_name, dic):
         num +=1
         date_vali5 = datetime.datetime.fromtimestamp(agency_validity_begin)
         worksheet.write(num, 0, '证件有效期')
-        time5 = date_vali5.strftime("%Y--%m--%d %H:%M:%S")
-        worksheet.write(num, 1, time5)
-        if agency_validity_end > 0:
+        if agency_validity_begin is not None:
+            time5 = date_vali5.strftime("%Y--%m--%d %H:%M:%S")
+            worksheet.write(num, 1, time5)
+        if agency_validity_end is not None and agency_validity_end > 0:
             date_vali6 = datetime.datetime.fromtimestamp(agency_validity_end)
             time6 = date_vali6.strftime("%Y--%m--%d %H:%M:%S")
             worksheet.write(num, 2, time6)
