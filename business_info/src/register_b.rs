@@ -2,6 +2,8 @@ use crate::config;
 use crate::authen_info::{personal_cartification, enterprise_cartification};
 use crate::response::ResponseBody;
 use actix_web::{post, web, HttpResponse, Responder};
+use actix::spawn;
+//use tokio::task;
 use log::{warn};
 use serde::{Deserialize, Serialize};
 use mysql_async::{ params, Pool, Row};
@@ -35,7 +37,7 @@ use std::io::BufReader;
 	person_info: PersonInfo, //填写人信息
     bank_info: BankInfo //公司银行账户信息
  }
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
  pub struct BusinessRequest{
     bus_type: String, // 单位类型
     bus_name: String, //企业名称
@@ -200,21 +202,21 @@ use std::io::BufReader;
       person_info: req.person_info.clone(), //填写人信息
       bank_info: req.bank_info.clone() //公司银行账户信息
     };
-    let http_client = reqwest::Client::new();
-    //let http_res = match 
-    http_client.post(&server_addr)
-         .json(&params)
-         .send();
-         /*.await{
-            Ok(v) => v,
-            Err(error)=>{
-               warn!("reqwest email server failed:{}",error.to_string());
-			   //释放连接
-				drop(conn);
-				pool.disconnect().await.unwrap();
-               return HttpResponse::Ok().json(ResponseBody::<String>::return_unwrap_error(error.to_string()));
-            }
-         };*/
+    
+    let tmp_params = params.clone();
+    let _join_hand = spawn( async move {
+      let http_client = reqwest::Client::new();
+      match http_client.post(&server_addr)
+      .json(&tmp_params)
+      .send().await{
+         Ok(_) => {},
+         Err(error)=>{
+            warn!("reqwest email server failed:{}",error.to_string());
+            return 
+            //return HttpResponse::Ok().json(ResponseBody::<String>::return_unwrap_error(error.to_string()));
+         }
+      };
+   });
    //	let code_status = http_res.status().as_u16();
 	/*if code_status != 200 {
 		warn!("user data process and send eamil failed");
