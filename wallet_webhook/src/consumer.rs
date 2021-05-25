@@ -80,6 +80,7 @@ pub async fn consumer_server()
     let transfer_pay = String::from("transfer.pay");
     let transfer_refund = String::from("transfer.refund");
     let payment_create = String::from("payment.create");
+    let payment_refund = String::from("payment.refund");
     //读取配置文件设置kafka初始状态
     let file = match File::open("./config/wallet_config_file.json") {
         Ok(f) => f,
@@ -180,6 +181,8 @@ pub async fn consumer_server()
                         _send_event = String::from("wallet.succeeded");
                     }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
                         _send_event = String::from("settle.succeeded");
+                    }else if payment_refund == recv_event{
+                        _send_event = String::from("refund.succeeded");
                     }else{
                         info!("{:?} this key value not need,into get next message.",recv_event);
                         continue;
@@ -202,6 +205,8 @@ pub async fn consumer_server()
                         _send_event = String::from("wallet.failed");
                     }else if settle_create==recv_event || settle_confirm==recv_event || settle_remove==recv_event{
                         _send_event = String::from("settle.failed");
+                    }else if payment_refund == recv_event{
+                        _send_event = String::from("refund.failed");
                     }else{
                         info!("{:?} this key value not need,into get next message.",recv_event);
                         continue;
